@@ -44,12 +44,23 @@ class SelectionScene extends Phaser.Scene {
     }
     
     createCharacterGrid() {
-        const startX = 150;
-        const startY = 150;
-        const cardWidth = 180;
-        const cardHeight = 220;
-        const spacing = 20;
-        const cols = 4;
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+        
+        // Responsive grid calculation
+        const cols = width < 800 ? 2 : 4; // Use 2 columns on smaller screens
+        const cardWidth = width < 800 ? 140 : 160; // Smaller cards on mobile
+        const cardHeight = width < 800 ? 180 : 200;
+        const spacing = width < 800 ? 15 : 20;
+        
+        // Calculate grid dimensions
+        const gridWidth = (cols * cardWidth) + ((cols - 1) * spacing);
+        const gridHeight = (Math.ceil(Characters.length / cols) * cardHeight) + 
+                          ((Math.ceil(Characters.length / cols) - 1) * spacing);
+        
+        // Center the grid
+        const startX = (width - gridWidth) / 2 + (cardWidth / 2);
+        const startY = 120; // Fixed top margin
         
         Characters.forEach((character, index) => {
             const col = index % cols;
@@ -57,7 +68,7 @@ class SelectionScene extends Phaser.Scene {
             const x = startX + (col * (cardWidth + spacing));
             const y = startY + (row * (cardHeight + spacing));
             
-            const card = this.createCharacterCard(x, y, character, index);
+            const card = this.createCharacterCard(x, y, character, index, cardWidth, cardHeight);
             this.characterCards.push(card);
         });
         
@@ -65,16 +76,16 @@ class SelectionScene extends Phaser.Scene {
         this.selectCharacter(0);
     }
     
-    createCharacterCard(x, y, character, index) {
+    createCharacterCard(x, y, character, index, cardWidth = 160, cardHeight = 200) {
         const card = this.add.container(x, y);
         
-        // Card background
-        const bg = this.add.rectangle(0, 0, 160, 200, 0xFFFFFF);
+        // Card background (use dynamic dimensions)
+        const bg = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xFFFFFF);
         bg.setStrokeStyle(4, 0x000000);
         bg.setInteractive({ useHandCursor: true });
         
-        // Selection highlight (hidden by default)
-        const highlight = this.add.rectangle(0, 0, 170, 210, 0xFFD700);
+        // Selection highlight (slightly larger than background)
+        const highlight = this.add.rectangle(0, 0, cardWidth + 10, cardHeight + 10, 0xFFD700);
         highlight.setStrokeStyle(6, 0xFFD700);
         highlight.setVisible(false);
         highlight.setAlpha(0.3);

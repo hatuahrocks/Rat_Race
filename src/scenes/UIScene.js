@@ -10,18 +10,25 @@ class UIScene extends Phaser.Scene {
         // Create UI container
         this.uiContainer = this.add.container(0, 0);
         
+        // Responsive boost meter positioning
+        const meterWidth = Math.min(200, width * 0.2); // Max 200px or 20% of screen width
+        const meterX = width - (meterWidth / 2) - 20; // 20px margin from edge
+        const meterY = height - 50;
+        
         // Boost meter background
-        const boostBg = this.add.rectangle(width - 150, height - 50, 200, 30, 0x333333);
+        const boostBg = this.add.rectangle(meterX, meterY, meterWidth, 30, 0x333333);
         boostBg.setOrigin(0.5);
         boostBg.setStrokeStyle(3, 0x000000);
         
         // Boost meter fill
-        this.boostFill = this.add.rectangle(width - 150, height - 50, 196, 26, 0x00FF00);
+        this.boostFill = this.add.rectangle(meterX, meterY, meterWidth - 4, 26, 0x00FF00);
         this.boostFill.setOrigin(0.5);
+        this.boostMeterMaxWidth = meterWidth - 4;
         
         // Boost label
-        const boostLabel = this.add.text(width - 150, height - 80, 'BOOST', {
-            fontSize: '20px',
+        const labelSize = Math.min(20, width * 0.025); // Responsive font size
+        const boostLabel = this.add.text(meterX, meterY - 30, 'BOOST', {
+            fontSize: `${labelSize}px`,
             fontFamily: 'Arial',
             color: '#FFFFFF',
             stroke: '#000000',
@@ -32,26 +39,30 @@ class UIScene extends Phaser.Scene {
         // Create boost button for touch controls
         this.createBoostButton();
         
-        // Progress bar
-        const progressBg = this.add.rectangle(width / 2, 30, 600, 20, 0x333333);
+        // Responsive progress bar
+        const progressWidth = Math.min(600, width * 0.8); // Max 600px or 80% of screen width
+        const progressBg = this.add.rectangle(width / 2, 30, progressWidth, 20, 0x333333);
         progressBg.setStrokeStyle(2, 0x000000);
         
-        this.progressFill = this.add.rectangle(width / 2 - 299, 30, 2, 16, 0xFFD700);
+        this.progressFill = this.add.rectangle(width / 2 - (progressWidth / 2) + 1, 30, 2, 16, 0xFFD700);
         this.progressFill.setOrigin(0, 0.5);
+        this.progressMaxWidth = progressWidth - 2;
         
-        // Progress markers
-        for (let i = 0; i <= 10; i++) {
-            const x = (width / 2 - 300) + (i * 60);
+        // Progress markers (responsive spacing)
+        const markerCount = 10;
+        for (let i = 0; i <= markerCount; i++) {
+            const x = (width / 2 - (progressWidth / 2)) + (i * (progressWidth / markerCount));
             const marker = this.add.rectangle(x, 30, 2, 20, 0x666666);
         }
         
-        // Position indicator
-        this.positionText = this.add.text(50, 50, '1st', {
-            fontSize: '48px',
+        // Responsive position indicator
+        const positionSize = Math.min(48, width * 0.06); // Responsive font size
+        this.positionText = this.add.text(30, 50, '1st', {
+            fontSize: `${positionSize}px`,
             fontFamily: 'Arial Black',
             color: '#FFD700',
             stroke: '#000000',
-            strokeThickness: 6
+            strokeThickness: Math.max(3, positionSize * 0.125)
         });
         
         // Speed indicator
@@ -86,9 +97,10 @@ class UIScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // Large touch-friendly boost button
-        const buttonSize = 100;
-        const button = this.add.container(width - 80, height - 150);
+        // Responsive touch-friendly boost button
+        const buttonSize = Math.min(100, Math.max(60, width * 0.12)); // 60-100px based on screen size
+        const margin = Math.max(20, width * 0.03); // Responsive margin from edge
+        const button = this.add.container(width - margin - (buttonSize / 2), height - 150);
         
         // Button background
         const bg = this.add.circle(0, 0, buttonSize / 2, 0xFF0000);
@@ -96,13 +108,14 @@ class UIScene extends Phaser.Scene {
         bg.setInteractive({ useHandCursor: true });
         bg.setAlpha(0.7);
         
-        // Button text
+        // Responsive button text
+        const textSize = Math.min(24, buttonSize * 0.25);
         const text = this.add.text(0, 0, 'BOOST', {
-            fontSize: '24px',
+            fontSize: `${textSize}px`,
             fontFamily: 'Arial Black',
             color: '#FFFFFF',
             stroke: '#000000',
-            strokeThickness: 3
+            strokeThickness: Math.max(2, textSize * 0.1)
         });
         text.setOrigin(0.5);
         
@@ -178,8 +191,7 @@ class UIScene extends Phaser.Scene {
     }
     
     updateBoostMeter(percentage) {
-        const maxWidth = 196;
-        this.boostFill.width = maxWidth * percentage;
+        this.boostFill.width = this.boostMeterMaxWidth * percentage;
         
         // Change color based on boost level
         if (percentage > 0.6) {
@@ -192,8 +204,7 @@ class UIScene extends Phaser.Scene {
     }
     
     updateProgress(percentage) {
-        const maxWidth = 598;
-        this.progressFill.width = maxWidth * percentage;
+        this.progressFill.width = this.progressMaxWidth * percentage;
     }
     
     updatePosition(position) {

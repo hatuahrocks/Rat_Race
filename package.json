@@ -18,6 +18,7 @@
   ],
   "author": "",
   "license": "MIT",
-  "dependencies": {},
-  "devDependencies": {}
+  "dependencies": {
+    "playwright": "^1.55.0"
+  }
 }

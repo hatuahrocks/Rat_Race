@@ -108,13 +108,16 @@ class MainMenuScene extends Phaser.Scene {
         });
         
         bg.on('pointerdown', () => {
+            // Execute callback immediately
+            callback();
+            
+            // Add visual feedback animation
             this.tweens.add({
                 targets: button,
                 scaleX: 0.95,
                 scaleY: 0.95,
                 duration: 50,
-                yoyo: true,
-                onComplete: callback
+                yoyo: true
             });
         });
         
