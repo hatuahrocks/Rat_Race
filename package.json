@@ -1,0 +1,23 @@
+{
+  "name": "rat-racer",
+  "version": "0.1.0",
+  "description": "Kid-friendly side-scrolling lane racer built with Phaser 3",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "build": "echo 'No build step required for development'",
+    "build-zip": "zip -r rat-racer.zip index.html src assets package.json -x '*.DS_Store' -x '__MACOSX/*'",
+    "test": "echo 'No tests configured yet'"
+  },
+  "keywords": [
+    "phaser3",
+    "html5",
+    "game",
+    "racing",
+    "kids"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

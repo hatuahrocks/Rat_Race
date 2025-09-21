@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Base rat template with colorable parts -->
+  <g id="rat">
+    <!-- Body -->
+    <ellipse class="primary-color" cx="32" cy="45" rx="20" ry="28" fill="#888888"/>
+    
+    <!-- Belly/Face area -->
+    <ellipse class="secondary-color" cx="32" cy="48" rx="14" ry="20" fill="#FFFFFF"/>
+    
+    <!-- Head -->
+    <circle class="primary-color" cx="32" cy="22" r="16" fill="#888888"/>
+    
+    <!-- Face -->
+    <ellipse class="secondary-color" cx="32" cy="24" rx="11" ry="12" fill="#FFFFFF"/>
+    
+    <!-- Ears -->
+    <ellipse class="primary-color" cx="22" cy="10" rx="7" ry="10" fill="#888888"/>
+    <ellipse class="primary-color" cx="42" cy="10" rx="7" ry="10" fill="#888888"/>
+    
+    <!-- Inner ears -->
+    <ellipse cx="22" cy="10" rx="3" ry="5" fill="#FFB6C1"/>
+    <ellipse cx="42" cy="10" rx="3" ry="5" fill="#FFB6C1"/>
+    
+    <!-- Eyes -->
+    <circle cx="26" cy="22" r="2" fill="#000000"/>
+    <circle cx="38" cy="22" r="2" fill="#000000"/>
+    
+    <!-- Nose -->
+    <circle cx="32" cy="28" r="1.5" fill="#FF69B4"/>
+    
+    <!-- Whiskers -->
+    <line x1="20" y1="26" x2="10" y2="24" stroke="#333333" stroke-width="0.5"/>
+    <line x1="20" y1="28" x2="10" y2="28" stroke="#333333" stroke-width="0.5"/>
+    <line x1="44" y1="26" x2="54" y2="24" stroke="#333333" stroke-width="0.5"/>
+    <line x1="44" y1="28" x2="54" y2="28" stroke="#333333" stroke-width="0.5"/>
+  </g>
+  
+  <!-- Patches overlay (hidden by default) -->
+  <g id="patches" style="display:none">
+    <ellipse cx="25" cy="40" rx="8" ry="6" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="38" cy="50" r="7" fill="#FFFFFF" opacity="0.9"/>
+    <ellipse cx="30" cy="20" rx="5" ry="4" fill="#FFFFFF" opacity="0.9"/>
+  </g>
+</svg>

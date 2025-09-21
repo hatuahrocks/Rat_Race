@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Rat Racer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        
+        #game-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #phaser-game {
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="phaser-game"></div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+    <script src="src/config/config.js"></script>
+    <script src="src/data/characters.js"></script>
+    <script src="src/systems/InputManager.js"></script>
+    <script src="src/systems/AudioManager.js"></script>
+    <script src="src/systems/PaletteSwap.js"></script>
+    <script src="src/systems/PatchesManager.js"></script>
+    <script src="src/systems/ObstacleSpawner.js"></script>
+    <script src="src/systems/LevelManager.js"></script>
+    <script src="src/objects/PlayerVehicle.js"></script>
+    <script src="src/objects/AIVehicle.js"></script>
+    <script src="src/objects/Obstacle.js"></script>
+    <script src="src/objects/Ramp.js"></script>
+    <script src="src/scenes/PreloadScene.js"></script>
+    <script src="src/scenes/MainMenuScene.js"></script>
+    <script src="src/scenes/SelectionScene.js"></script>
+    <script src="src/scenes/GameScene.js"></script>
+    <script src="src/scenes/UIScene.js"></script>
+    <script src="src/scenes/RaceEndScene.js"></script>
+    <script src="src/main.js"></script>
+</body>
+</html>

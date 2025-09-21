@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="60" xmlns="http://www.w3.org/2000/svg">
+  <g id="car">
+    <!-- Car body -->
+    <rect x="10" y="20" width="80" height="25" rx="5" fill="#444444" stroke="#222222" stroke-width="2"/>
+    
+    <!-- Front section -->
+    <rect x="65" y="18" width="25" height="20" rx="3" fill="#555555"/>
+    
+    <!-- Back section -->
+    <rect x="10" y="18" width="20" height="20" rx="3" fill="#555555"/>
+    
+    <!-- Windshield frame (open top) -->
+    <rect x="60" y="15" width="3" height="18" fill="#333333"/>
+    
+    <!-- Seat area -->
+    <rect x="35" y="25" width="30" height="15" fill="#222222"/>
+    <rect x="38" y="28" width="24" height="10" fill="#666666"/>
+    
+    <!-- Wheels -->
+    <circle cx="25" cy="48" r="8" fill="#1a1a1a" stroke="#000000" stroke-width="1"/>
+    <circle cx="75" cy="48" r="8" fill="#1a1a1a" stroke="#000000" stroke-width="1"/>
+    
+    <!-- Wheel details -->
+    <circle cx="25" cy="48" r="4" fill="#333333"/>
+    <circle cx="75" cy="48" r="4" fill="#333333"/>
+    
+    <!-- Headlights -->
+    <ellipse cx="88" cy="30" rx="3" ry="4" fill="#FFFF99" opacity="0.8"/>
+    
+    <!-- Taillights -->
+    <rect x="11" y="28" width="4" height="6" fill="#FF0000" opacity="0.7"/>
+  </g>
+</svg>
