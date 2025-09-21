@@ -17,6 +17,7 @@ class AudioManager {
         this.scene.load.audio('ramp', 'assets/audio/ramp.mp3');
         this.scene.load.audio('push', 'assets/audio/push.mp3');
         this.scene.load.audio('boost', 'assets/audio/boost.mp3');
+        this.scene.load.audio('powerup', 'assets/audio/powerup.mp3');
 
         // Engine Sounds
         this.scene.load.audio('engine_idle', 'assets/audio/engine_idle.mp3');
@@ -32,7 +33,7 @@ class AudioManager {
     create() {
         // Initialize sound objects
         const soundKeys = [
-            'countdown', 'bump', 'ramp', 'push', 'boost',
+            'countdown', 'bump', 'ramp', 'push', 'boost', 'powerup',
             'engine_idle', 'engine_mid', 'engine_high', 'engine_drag',
             'music_menu', 'music_race'
         ];

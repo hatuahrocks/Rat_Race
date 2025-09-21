@@ -307,6 +307,13 @@ class GameScene extends Phaser.Scene {
                 this.player.changeLane(1);
             }
         });
+
+        // Finger tracing lane target
+        this.events.on('laneChangeToTarget', (targetLane) => {
+            if (this.gameStarted && !this.gameEnded) {
+                this.player.changeLaneToTarget(targetLane);
+            }
+        });
         
         // Boost events
         this.events.on('boostStart', () => {
@@ -359,6 +366,12 @@ class GameScene extends Phaser.Scene {
                 this.player.hitRamp();
             }
         }
+
+        // Check player strawberry collection
+        const strawberry = this.obstacleSpawner.checkStrawberryCollision(this.player);
+        if (strawberry) {
+            this.collectStrawberry(strawberry, this.player);
+        }
         
         // Update AI vehicles
         this.aiVehicles.forEach(ai => {
@@ -373,6 +386,12 @@ class GameScene extends Phaser.Scene {
                 } else if (aiCollision.type === 'ramp') {
                     ai.hitRamp();
                 }
+            }
+
+            // Check AI strawberry collection
+            const aiStrawberry = this.obstacleSpawner.checkStrawberryCollision(ai);
+            if (aiStrawberry) {
+                this.collectStrawberry(aiStrawberry, ai);
             }
             
             // Move AI forward relative to scroll
@@ -437,8 +456,51 @@ class GameScene extends Phaser.Scene {
         this.obstacleSpawner.destroy();
         this.events.off('laneChangeUp');
         this.events.off('laneChangeDown');
+        this.events.off('laneChangeToTarget');
         this.events.off('boostStart');
         this.events.off('boostEnd');
         this.events.off('boostPartial');
+    }
+
+    collectStrawberry(strawberry, vehicle) {
+        // Mark strawberry as collected and play collection effect
+        strawberry.collect();
+
+        // Give boost energy to the vehicle
+        const boostAmount = 2; // 2 seconds of boost energy
+
+        if (vehicle === this.player) {
+            // Player gets boost energy AND immediate speed boost
+            vehicle.boostMeter = Math.min(
+                vehicle.boostMeter + boostAmount,
+                GameConfig.BOOST_MAX_SECONDS
+            );
+
+            // Give immediate strawberry boost effect (stackable with regular boost)
+            vehicle.strawberryBoostTime = 2000; // 2 seconds of 40% speed boost
+
+            console.log(`Player collected strawberry! Boost meter: ${vehicle.boostMeter.toFixed(1)}s, Strawberry boost for 2s`);
+
+            // If already boosting, extend the boost
+            if (vehicle.isBoosting) {
+                console.log('Extended boost duration!');
+            }
+        } else {
+            // AI gets boost energy AND immediate speed boost
+            vehicle.boostMeter = Math.min(
+                vehicle.boostMeter + boostAmount,
+                GameConfig.BOOST_MAX_SECONDS
+            );
+
+            // Give immediate strawberry boost effect for AI too
+            vehicle.strawberryBoostTime = 2000; // 2 seconds of 40% speed boost
+
+            console.log(`AI collected strawberry! Boost meter: ${vehicle.boostMeter.toFixed(1)}s, Strawberry boost for 2s`);
+        }
+
+        // Play collection sound effect (only for player, not AI)
+        if (vehicle === this.player && this.audioManager) {
+            this.audioManager.playSound('powerup');
+        }
     }
 }

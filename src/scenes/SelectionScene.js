@@ -87,8 +87,8 @@ class SelectionScene extends Phaser.Scene {
     createCharacterCard(x, y, character, index, cardWidth = 160, cardHeight = 200) {
         const card = this.add.container(x, y);
         
-        // Card background (use dynamic dimensions)
-        const bg = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xFFFFFF);
+        // Card background (use dynamic dimensions) - light grey as default
+        const bg = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xF0F0F0);
         bg.setStrokeStyle(4, 0x000000);
         bg.setInteractive({ useHandCursor: true });
         
@@ -113,25 +113,34 @@ class SelectionScene extends Phaser.Scene {
         portrait.add(ratSprite);
         
         // Character name
-        const name = this.add.text(0, 60, character.name, {
+        const name = this.add.text(0, 55, character.name, {
             fontSize: '18px',
             fontFamily: 'Arial',
             color: '#000000',
             fontStyle: 'bold'
         });
         name.setOrigin(0.5);
-        
-        // Character description
-        const desc = this.add.text(0, 85, character.description, {
-            fontSize: '12px',
+
+        // Character personality
+        const personality = this.add.text(0, 73, character.personality, {
+            fontSize: '11px',
+            fontFamily: 'Arial',
+            color: '#FF6B6B',
+            fontStyle: 'italic'
+        });
+        personality.setOrigin(0.5);
+
+        // Character trait
+        const trait = this.add.text(0, 90, character.trait, {
+            fontSize: '10px',
             fontFamily: 'Arial',
             color: '#666666',
             align: 'center',
             wordWrap: { width: 140 }
         });
-        desc.setOrigin(0.5);
+        trait.setOrigin(0.5);
         
-        card.add([highlight, bg, portrait, name, desc]);
+        card.add([highlight, bg, portrait, name, personality, trait]);
         card.character = character;
         card.index = index;
         
@@ -143,13 +152,13 @@ class SelectionScene extends Phaser.Scene {
         // Hover effects
         bg.on('pointerover', () => {
             if (index !== this.selectedIndex) {
-                bg.setFillStyle(0xF0F0F0);
+                bg.setFillStyle(0xD8D8D8);
             }
         });
-        
+
         bg.on('pointerout', () => {
             if (index !== this.selectedIndex) {
-                bg.setFillStyle(0xFFFFFF);
+                bg.setFillStyle(0xF0F0F0);
             }
         });
         
@@ -192,14 +201,122 @@ class SelectionScene extends Phaser.Scene {
         // Nose
         const nose = this.add.circle(0, -12, 2, 0xFF69B4);
         
-        container.add([body, belly, head, face, earLeft, earRight, 
+        container.add([body, belly, head, face, earLeft, earRight,
                       innerEarLeft, innerEarRight, eyeLeft, eyeRight, nose]);
-        
-        // Simple two-tone design - no patches needed
-        
+
+        // Add larger accessories for selection screen
+        this.addDetailedAccessory(container, character);
+
         return container;
     }
-    
+
+    addDetailedAccessory(container, character) {
+        const accessoryColor = Phaser.Display.Color.HexStringToColor(character.accessoryColor || '#000000').color;
+
+        switch(character.accessory) {
+            case 'bow-tie':
+                // Create bow tie using graphics for exact control
+                const bowTie = this.add.graphics();
+
+                // Left wing triangle - red
+                bowTie.fillStyle(accessoryColor);
+                bowTie.beginPath();
+                bowTie.moveTo(-25, -8); // top left corner
+                bowTie.lineTo(-4, 5);   // inner point (center)
+                bowTie.lineTo(-25, 18); // bottom left corner
+                bowTie.closePath();
+                bowTie.fillPath();
+
+                // Right wing triangle - red
+                bowTie.fillStyle(accessoryColor);
+                bowTie.beginPath();
+                bowTie.moveTo(25, -8);  // top right corner
+                bowTie.lineTo(4, 5);    // inner point (center)
+                bowTie.lineTo(25, 18);  // bottom right corner
+                bowTie.closePath();
+                bowTie.fillPath();
+
+                // Center knot - darker red oval
+                bowTie.fillStyle(0x8B0000);
+                bowTie.fillEllipse(0, 5, 16, 10);
+
+                container.add(bowTie);
+                break;
+
+            case 'monocle-tophat':
+                // Larger monocle and top hat for Duke
+                const monocle = this.add.circle(9, -20, 8);
+                monocle.setStrokeStyle(2, accessoryColor);
+                const monocleChain = this.add.line(0, 0, 9, -20, 15, -12, accessoryColor);
+                monocleChain.setLineWidth(1);
+                const hatBrim = this.add.ellipse(0, -45, 35, 8, accessoryColor);
+                const hatTop = this.add.rectangle(0, -54, 25, 18, accessoryColor);
+                container.add([monocle, monocleChain, hatBrim, hatTop]);
+                break;
+
+            case 'tiara':
+                // Larger tiara for Daisy
+                const tiaraBase = this.add.arc(0, -42, 20, 180, 360, false);
+                tiaraBase.setStrokeStyle(3, accessoryColor);
+                const gem1 = this.add.circle(-7, -44, 3, 0xFF69B4);
+                const gem2 = this.add.circle(0, -47, 4, 0xFF69B4);
+                const gem3 = this.add.circle(7, -44, 3, 0xFF69B4);
+                container.add([tiaraBase, gem1, gem2, gem3]);
+                break;
+
+            case 'goggles':
+                // Racing goggles on forehead for Pip
+                const goggleLeft = this.add.circle(-8, -38, 6);
+                goggleLeft.setStrokeStyle(3, accessoryColor);
+                goggleLeft.setFillStyle(0x333333, 0.3);
+                const goggleRight = this.add.circle(8, -38, 6);
+                goggleRight.setStrokeStyle(3, accessoryColor);
+                goggleRight.setFillStyle(0x333333, 0.3);
+                const goggleStrap = this.add.line(0, 0, -14, -38, -18, -40, accessoryColor);
+                goggleStrap.setLineWidth(3);
+                const goggleStrap2 = this.add.line(0, 0, 14, -38, 18, -40, accessoryColor);
+                goggleStrap2.setLineWidth(3);
+                const goggleBridge = this.add.line(0, 0, -2, -38, 2, -38, accessoryColor);
+                goggleBridge.setLineWidth(2);
+                container.add([goggleLeft, goggleRight, goggleStrap, goggleStrap2, goggleBridge]);
+                break;
+
+            case 'vest':
+                // Leather vest at chest level for Biscuit
+                const vestLeft = this.add.rectangle(-12, 8, 12, 25, accessoryColor);
+                const vestRight = this.add.rectangle(12, 8, 12, 25, accessoryColor);
+                const vestButton1 = this.add.circle(-12, 3, 2, 0x888888);
+                const vestButton2 = this.add.circle(12, 3, 2, 0x888888);
+                container.add([vestLeft, vestRight, vestButton1, vestButton2]);
+                break;
+
+            case 'sunglasses':
+                // Cool bigger sunglasses for Slurp
+                const lensLeft = this.add.ellipse(-9, -20, 14, 10, accessoryColor);
+                const lensRight = this.add.ellipse(9, -20, 14, 10, accessoryColor);
+                const bridge = this.add.rectangle(0, -20, 4, 2, accessoryColor);
+                container.add([lensLeft, lensRight, bridge]);
+                break;
+
+            case 'sweatband':
+                // Larger sweatband for Dippy
+                const band = this.add.rectangle(0, -35, 28, 6, accessoryColor);
+                const stripe1 = this.add.rectangle(0, -35, 28, 2, 0xFFFFFF);
+                container.add([band, stripe1]);
+                break;
+
+            case 'scarf':
+                // Blue scarf with darker outline for Marshmallow
+                const scarfOutline = this.add.ellipse(0, 12, 38, 15, 0x2B5797);
+                const scarfMain = this.add.ellipse(0, 12, 35, 12, accessoryColor);
+                const scarfEndOutline = this.add.rectangle(-15, 15, 11, 24, 0x2B5797);
+                const scarfEnd = this.add.rectangle(-15, 15, 9, 22, accessoryColor);
+                const scarfStripe = this.add.rectangle(-15, 22, 9, 3, 0xFFFFFF);
+                container.add([scarfOutline, scarfMain, scarfEndOutline, scarfEnd, scarfStripe]);
+                break;
+        }
+    }
+
     selectCharacter(index) {
         // Update selection
         this.selectedIndex = index;
@@ -211,7 +328,7 @@ class SelectionScene extends Phaser.Scene {
                 card.getAt(1).setFillStyle(0xFFFACD); // Highlight background
             } else {
                 card.highlight.setVisible(false);
-                card.getAt(1).setFillStyle(0xFFFFFF); // Normal background
+                card.getAt(1).setFillStyle(0xF0F0F0); // Normal grey background
             }
         });
         

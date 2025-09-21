@@ -4,11 +4,14 @@ class ObstacleSpawner {
         this.levelTheme = levelTheme;
         this.obstacles = [];
         this.ramps = [];
-        
+        this.strawberries = [];
+
         this.lastObstacleSpawn = 0;
         this.lastRampSpawn = 0;
+        this.lastStrawberrySpawn = 0;
         this.nextObstacleTime = Phaser.Math.Between(GameConfig.SPAWN.OBSTACLE_FREQ_MIN, GameConfig.SPAWN.OBSTACLE_FREQ_MAX);
         this.nextRampTime = Phaser.Math.Between(GameConfig.SPAWN.RAMP_FREQ_MIN, GameConfig.SPAWN.RAMP_FREQ_MAX);
+        this.nextStrawberryTime = Phaser.Math.Between(3000, 6000); // Spawn strawberries every 3-6 seconds
         
         this.spawnX = GameConfig.VIEWPORT.WIDTH + 100;
     }
@@ -17,6 +20,7 @@ class ObstacleSpawner {
         // Update spawn timers
         this.lastObstacleSpawn += delta;
         this.lastRampSpawn += delta;
+        this.lastStrawberrySpawn += delta;
         
         // Spawn obstacles
         if (this.lastObstacleSpawn > this.nextObstacleTime) {
@@ -33,9 +37,16 @@ class ObstacleSpawner {
             this.spawnRamp();
             this.lastRampSpawn = 0;
             this.nextRampTime = Phaser.Math.Between(
-                GameConfig.SPAWN.RAMP_FREQ_MIN, 
+                GameConfig.SPAWN.RAMP_FREQ_MIN,
                 GameConfig.SPAWN.RAMP_FREQ_MAX
             );
+        }
+
+        // Spawn strawberries
+        if (this.lastStrawberrySpawn > this.nextStrawberryTime) {
+            this.spawnStrawberry();
+            this.lastStrawberrySpawn = 0;
+            this.nextStrawberryTime = Phaser.Math.Between(3000, 6000); // Every 3-6 seconds
         }
         
         // Update all obstacles
@@ -54,6 +65,15 @@ class ObstacleSpawner {
                 return true;
             }
             return false;
+        });
+
+        // Update all strawberries (power-ups, not obstacles)
+        this.strawberries = this.strawberries.filter(strawberry => {
+            if (!strawberry.collected) {
+                strawberry.update(scrollSpeed);
+                return strawberry.x > -100; // Remove if off screen
+            }
+            return false; // Remove if collected
         });
     }
     
@@ -172,6 +192,31 @@ class ObstacleSpawner {
         this.lastRampSpawn = 0;
     }
     
+    spawnStrawberry() {
+        const lane = Phaser.Math.Between(0, GameConfig.LANE_COUNT - 1);
+        const y = GameConfig.LANE_Y_POSITIONS[lane];
+
+        // Strawberries don't need to check for lane clearing since they float above
+        const strawberry = new Strawberry(this.scene, this.spawnX, y);
+        this.strawberries.push(strawberry);
+        console.log('Strawberry spawned at lane', lane, 'position', this.spawnX, y);
+    }
+
+    checkStrawberryCollision(vehicle) {
+        const vehicleX = vehicle.x;
+        const vehicleY = vehicle.y;
+        const collisionRange = 30; // Smaller range for power-ups
+
+        for (let strawberry of this.strawberries) {
+            if (!strawberry.collected &&
+                Math.abs(strawberry.x - vehicleX) < collisionRange &&
+                Math.abs(strawberry.y - vehicleY) < 40) {
+                return strawberry;
+            }
+        }
+        return null;
+    }
+
     destroy() {
         this.reset();
     }

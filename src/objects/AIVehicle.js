@@ -32,6 +32,14 @@ class AIVehicle extends Phaser.GameObjects.Container {
         
         // Collision properties
         this.isBlocked = false;
+
+        // Ramp boost tracking
+        this.rampBoostSpeed = 0;
+        this.rampBoostTime = 0;
+
+        // Strawberry boost tracking
+        this.strawberryBoostSpeed = 0;
+        this.strawberryBoostTime = 0;
         this.blockingObstacle = null;
         this.blockingVehicle = null;
         
@@ -91,22 +99,42 @@ class AIVehicle extends Phaser.GameObjects.Container {
     makeDecision(playerX, obstacles) {
         // Simple AI decision making based on difficulty
         const decisionThreshold = 0.3 + (this.difficulty * 0.5);
-        
+
         // Check for obstacles in current lane
         const dangerAhead = this.checkForDanger(obstacles);
-        
+
+        // Check for ramps ahead to seek them out (most of the time)
+        const rampAhead = this.checkForRamps();
+
+        // Check for strawberries to seek them out (high priority!)
+        const strawberryAhead = this.checkForStrawberries();
+
         if (dangerAhead && Math.random() < decisionThreshold) {
-            // Try to change lanes
+            // Try to change lanes to avoid danger
             const possibleLanes = [];
             if (this.currentLane > 0) possibleLanes.push(-1);
             if (this.currentLane < GameConfig.LANE_COUNT - 1) possibleLanes.push(1);
-            
+
             if (possibleLanes.length > 0) {
                 const direction = Phaser.Math.RND.pick(possibleLanes);
                 this.changeLane(direction);
             }
+        } else if (strawberryAhead && Math.random() < 0.4) { // 40% chance to seek strawberries (reduced from 80%)
+            // Try to move towards strawberries for boost energy
+            const strawberryDirection = this.getStrawberryDirection();
+            if (strawberryDirection !== 0 && this.canChangeLaneInDirection(strawberryDirection)) {
+                console.log('AI seeking strawberry for boost energy!');
+                this.changeLane(strawberryDirection);
+            }
+        } else if (rampAhead && Math.random() < 0.3) { // 30% chance to seek ramps (reduced from 70%)
+            // Try to move towards ramps for speed boost
+            const rampDirection = this.getRampDirection();
+            if (rampDirection !== 0 && this.canChangeLaneInDirection(rampDirection)) {
+                console.log('AI seeking ramp for speed boost!');
+                this.changeLane(rampDirection);
+            }
         }
-        
+
         // Boost decision
         if (this.boostMeter > 1 && Math.random() < (this.difficulty * 0.1)) {
             this.startBoost();
@@ -128,7 +156,92 @@ class AIVehicle extends Phaser.GameObjects.Container {
         }
         return false;
     }
-    
+
+    checkForRamps() {
+        // Check if there are any ramps in the upcoming area
+        if (this.scene.obstacleSpawner && this.scene.obstacleSpawner.ramps) {
+            for (let ramp of this.scene.obstacleSpawner.ramps) {
+                const distanceAhead = ramp.x - this.x;
+                if (distanceAhead > 0 && distanceAhead < 200) { // Ramp within 200px ahead
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    getRampDirection() {
+        // Find the closest ramp and determine which direction to move to reach it
+        if (this.scene.obstacleSpawner && this.scene.obstacleSpawner.ramps) {
+            let closestRamp = null;
+            let closestDistance = Infinity;
+
+            for (let ramp of this.scene.obstacleSpawner.ramps) {
+                const distanceAhead = ramp.x - this.x;
+                if (distanceAhead > 0 && distanceAhead < 200) { // Only consider ramps ahead
+                    const totalDistance = Math.abs(distanceAhead) + Math.abs(ramp.y - this.y);
+                    if (totalDistance < closestDistance) {
+                        closestDistance = totalDistance;
+                        closestRamp = ramp;
+                    }
+                }
+            }
+
+            if (closestRamp) {
+                const laneDiff = Math.abs(closestRamp.y - this.y);
+                if (laneDiff > 40) { // Need to change lanes to reach ramp
+                    return closestRamp.y > this.y ? 1 : -1; // Move towards ramp
+                }
+            }
+        }
+        return 0; // No lane change needed
+    }
+
+    checkForStrawberries() {
+        // Check if there are any strawberries in the upcoming area
+        if (this.scene.obstacleSpawner && this.scene.obstacleSpawner.strawberries) {
+            for (let strawberry of this.scene.obstacleSpawner.strawberries) {
+                const distanceAhead = strawberry.x - this.x;
+                if (!strawberry.collected && distanceAhead > 0 && distanceAhead < 250) { // Strawberries within 250px ahead
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    getStrawberryDirection() {
+        // Find the closest strawberry and determine which direction to move to reach it
+        if (this.scene.obstacleSpawner && this.scene.obstacleSpawner.strawberries) {
+            let closestStrawberry = null;
+            let closestDistance = Infinity;
+
+            for (let strawberry of this.scene.obstacleSpawner.strawberries) {
+                const distanceAhead = strawberry.x - this.x;
+                if (!strawberry.collected && distanceAhead > 0 && distanceAhead < 250) { // Only consider strawberries ahead
+                    const totalDistance = Math.abs(distanceAhead) + Math.abs(strawberry.y - this.y);
+                    if (totalDistance < closestDistance) {
+                        closestDistance = totalDistance;
+                        closestStrawberry = strawberry;
+                    }
+                }
+            }
+
+            if (closestStrawberry) {
+                const laneDiff = Math.abs(closestStrawberry.y - this.y);
+                if (laneDiff > 40) { // Need to change lanes to reach strawberry
+                    return closestStrawberry.y > this.y ? 1 : -1; // Move towards strawberry
+                }
+            }
+        }
+        return 0; // No lane change needed
+    }
+
+    canChangeLaneInDirection(direction) {
+        const targetLane = this.currentLane + direction;
+        return targetLane >= 0 && targetLane < GameConfig.LANE_COUNT && !this.isChangingLanes;
+    }
+
     changeLane(direction) {
         if (this.isAirborne || this.isChangingLanes) return false;
         
@@ -214,6 +327,11 @@ class AIVehicle extends Phaser.GameObjects.Container {
         if (!this.isAirborne) {
             this.isAirborne = true;
             this.verticalVelocity = GameConfig.AIR_IMPULSE;
+
+            // Give AI a speed boost too for hitting ramp
+            this.rampBoostTime = 1500; // Boost lasts 1.5 seconds (30% speed boost)
+
+            console.log('AI ramp boost activated for 1.5s!');
         }
     }
     
@@ -355,12 +473,43 @@ class AIVehicle extends Phaser.GameObjects.Container {
                 this.boostMeter += GameConfig.BOOST_REGEN_PER_SEC * dt * 0.8; // AI regenerates slower
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);
             }
-            
-            // Set speed based on whether we're offroad or not
-            if (this.isOffroad()) {
-                this.currentSpeed = this.baseSpeed * GameConfig.OFFROAD_SLOWDOWN;
-            } else {
-                this.currentSpeed = this.baseSpeed;
+
+            // Handle ramp boost timer
+            if (this.rampBoostTime > 0) {
+                this.rampBoostTime -= delta;
+                if (this.rampBoostTime <= 0) {
+                    this.rampBoostTime = 0;
+                    this.rampBoostSpeed = 0;
+                }
+            }
+
+            // Handle strawberry boost timer
+            if (this.strawberryBoostTime > 0) {
+                this.strawberryBoostTime -= delta;
+                if (this.strawberryBoostTime <= 0) {
+                    this.strawberryBoostTime = 0;
+                    this.strawberryBoostSpeed = 0;
+                }
+            }
+
+            if (!this.isBlocked) {
+                // Calculate base speed first
+                let speedMultiplier = 1.0;
+
+                // Apply power-up boosts (these should be VERY noticeable!)
+                if (this.strawberryBoostTime > 0) {
+                    speedMultiplier = Math.max(speedMultiplier, 1.7); // 70% boost from strawberry (more than manual boost!)
+                }
+                if (this.rampBoostTime > 0) {
+                    speedMultiplier = Math.max(speedMultiplier, 1.5); // 50% boost from ramp (similar to manual boost)
+                }
+
+                // Set speed based on whether we're offroad or not
+                if (this.isOffroad()) {
+                    this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
+                } else {
+                    this.currentSpeed = this.baseSpeed * speedMultiplier;
+                }
             }
         }
         

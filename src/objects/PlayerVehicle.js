@@ -37,7 +37,15 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         
         // Collision boost tracking
         this.hasCollisionBoost = false;
-        
+
+        // Ramp boost tracking
+        this.rampBoostSpeed = 0;
+        this.rampBoostTime = 0;
+
+        // Strawberry boost tracking
+        this.strawberryBoostSpeed = 0;
+        this.strawberryBoostTime = 0;
+
         this.createVehicle();
         scene.add.existing(this);
     }
@@ -110,6 +118,32 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         this.laneChangeProgress = 0;
         
         console.log(`PlayerVehicle changing to extended lane ${newExtendedLane}`);
+        return true;
+    }
+
+    changeLaneToTarget(targetLane) {
+        if (this.isAirborne || this.isChangingLanes) return false;
+
+        // Clamp target lane to valid range (-1 to 4)
+        targetLane = Phaser.Math.Clamp(targetLane, -1, 4);
+
+        // Don't change if already in target lane
+        if (targetLane === this.extendedLane) return false;
+
+        // Check if it's a road lane and if it's clear of obstacles (but allow offroad)
+        if (targetLane >= 0 && targetLane < GameConfig.LANE_COUNT) {
+            if (!this.canChangeLane(targetLane)) {
+                console.log(`Direct lane change blocked - lane ${targetLane} not clear`);
+                return false;
+            }
+        }
+
+        // Execute the lane change
+        this.targetExtendedLane = targetLane;
+        this.isChangingLanes = true;
+        this.laneChangeProgress = 0;
+
+        console.log(`PlayerVehicle finger tracing to extended lane ${targetLane}`);
         return true;
     }
     
@@ -223,6 +257,11 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
             this.isAirborne = true;
             this.verticalVelocity = GameConfig.AIR_IMPULSE;
             this.airborneTime = 0;
+
+            // Give a small speed boost as reward for hitting ramp
+            this.rampBoostTime = 1500; // Boost lasts 1.5 seconds (30% speed boost)
+
+            console.log('Ramp boost activated for 1.5s!');
 
             // Play ramp sound effect
             if (this.scene.audioManager) {
@@ -369,12 +408,48 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);
             }
             
+            // Handle ramp boost timer
+            if (this.rampBoostTime > 0) {
+                this.rampBoostTime -= delta;
+                if (this.rampBoostTime <= 0) {
+                    this.rampBoostTime = 0;
+                    this.rampBoostSpeed = 0;
+                    console.log('Ramp boost ended');
+                }
+            }
+
+            // Handle strawberry boost timer
+            if (this.strawberryBoostTime > 0) {
+                this.strawberryBoostTime -= delta;
+                if (this.strawberryBoostTime <= 0) {
+                    this.strawberryBoostTime = 0;
+                    this.strawberryBoostSpeed = 0;
+                    console.log('Strawberry boost ended');
+                }
+            }
+
             if (!this.isBlocked && !this.hasCollisionBoost) {
-                // Set speed based on whether we're offroad or not (only if no collision boost)
+                // Calculate base speed first
+                let speedMultiplier = 1.0;
+
+                // Apply power-up boosts (these should be VERY noticeable!)
+                if (this.strawberryBoostTime > 0) {
+                    speedMultiplier = Math.max(speedMultiplier, 1.7); // 70% boost from strawberry (more than manual boost!)
+                }
+                if (this.rampBoostTime > 0) {
+                    speedMultiplier = Math.max(speedMultiplier, 1.5); // 50% boost from ramp (similar to manual boost)
+                }
+
+                // Set speed based on whether we're offroad or not
                 if (this.isOffroad()) {
-                    this.currentSpeed = this.baseSpeed * GameConfig.OFFROAD_SLOWDOWN;
+                    this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
                 } else {
-                    this.currentSpeed = this.baseSpeed;
+                    this.currentSpeed = this.baseSpeed * speedMultiplier;
+                }
+
+                // Log when boosts are active for debugging
+                if (speedMultiplier > 1.0) {
+                    console.log(`Speed boost active! Multiplier: ${speedMultiplier}, Speed: ${this.currentSpeed}`);
                 }
             }
         }
