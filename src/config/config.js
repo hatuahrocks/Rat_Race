@@ -1,7 +1,12 @@
 const GameConfig = {
     LANE_COUNT: 4,
-    LANE_Y_POSITIONS: [-120, -40, 40, 120],
-    BASE_FORWARD_SPEED: 200,
+    LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
+    OFFROAD_HIGH_Y: 184, // Above top lane
+    OFFROAD_LOW_Y: 584,  // Below bottom lane
+    OFFROAD_SLOWDOWN: 0.75, // 25% slowdown (multiply speed by 0.75)
+    // Extended lane system (0-5): -1=high offroad, 0-3=road lanes, 4=low offroad
+    EXTENDED_LANE_POSITIONS: [184, 264, 344, 424, 504, 584], // All 6 positions
+    BASE_FORWARD_SPEED: 312, // Increased by 56% total (200 * 1.56 = 30% more than previous 240)
     BOOST_SPEED_MULTIPLIER: 1.6,
     BOOST_MAX_SECONDS: 3,
     BOOST_REGEN_PER_SEC: 0.5,
@@ -45,8 +50,8 @@ const GameConfig = {
     SPAWN: {
         OBSTACLE_FREQ_MIN: 1500,
         OBSTACLE_FREQ_MAX: 3000,
-        RAMP_FREQ_MIN: 4000,
-        RAMP_FREQ_MAX: 6000,
+        RAMP_FREQ_MIN: 2000, // Increased frequency for testing
+        RAMP_FREQ_MAX: 3500,
         MIN_GAP: 300
     }
 };

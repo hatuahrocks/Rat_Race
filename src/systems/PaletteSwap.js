@@ -45,19 +45,37 @@ class PaletteSwap {
     createRatSprite(character) {
         const container = this.scene.add.container(0, 0);
         
-        // Create base rat shape (placeholder)
+        // Body (scaled for in-game use)
         const body = this.scene.add.ellipse(0, 0, 30, 40, this.hexToNumber(character.primaryColor));
-        const face = this.scene.add.ellipse(0, -10, 25, 25, this.hexToNumber(character.secondaryColor));
-        const earLeft = this.scene.add.circle(-10, -25, 8, this.hexToNumber(character.primaryColor));
-        const earRight = this.scene.add.circle(10, -25, 8, this.hexToNumber(character.primaryColor));
         
-        container.add([body, face, earLeft, earRight]);
+        // Belly/face area
+        const belly = this.scene.add.ellipse(0, 3, 22, 30, this.hexToNumber(character.secondaryColor));
         
-        // Add patches if needed
-        if (character.hasPatches) {
-            const patches = this.scene.patchesManager.createPatches(container);
-            container.add(patches);
-        }
+        // Head
+        const head = this.scene.add.circle(0, -15, 18, this.hexToNumber(character.primaryColor));
+        
+        // Face details
+        const face = this.scene.add.ellipse(0, -13, 15, 16, this.hexToNumber(character.secondaryColor));
+        
+        // Ears
+        const earLeft = this.scene.add.ellipse(-8, -25, 8, 12, this.hexToNumber(character.primaryColor));
+        const earRight = this.scene.add.ellipse(8, -25, 8, 12, this.hexToNumber(character.primaryColor));
+        
+        // Inner ears
+        const innerEarLeft = this.scene.add.ellipse(-8, -25, 4, 7, 0xFFAAAA);
+        const innerEarRight = this.scene.add.ellipse(8, -25, 4, 7, 0xFFAAAA);
+        
+        // Eyes (matching selection screen size)
+        const eyeLeft = this.scene.add.circle(-4, -15, 2, 0x000000);
+        const eyeRight = this.scene.add.circle(4, -15, 2, 0x000000);
+        
+        // Nose (matching selection screen size)
+        const nose = this.scene.add.circle(0, -9, 1.5, 0xFF69B4);
+        
+        container.add([body, belly, head, face, earLeft, earRight, 
+                      innerEarLeft, innerEarRight, eyeLeft, eyeRight, nose]);
+        
+        // Simple two-tone design - no patches needed
         
         return container;
     }

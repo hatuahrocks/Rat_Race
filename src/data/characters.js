@@ -4,7 +4,6 @@ const Characters = [
         name: 'Butter',
         primaryColor: '#F8E6A0',
         secondaryColor: '#F8E6A0',
-        hasPatches: false,
         description: 'Creamy yellow speedster'
     },
     {
@@ -12,7 +11,6 @@ const Characters = [
         name: 'Duke',
         primaryColor: '#8D8D93',
         secondaryColor: '#FFFFFF',
-        hasPatches: false,
         description: 'Grey and white champion'
     },
     {
@@ -20,7 +18,6 @@ const Characters = [
         name: 'Daisy',
         primaryColor: '#8A4FFF',
         secondaryColor: '#FFFFFF',
-        hasPatches: false,
         description: 'Purple racing princess'
     },
     {
@@ -28,23 +25,20 @@ const Characters = [
         name: 'Pip',
         primaryColor: '#111111',
         secondaryColor: '#FFFFFF',
-        hasPatches: true,
-        description: 'Black with white patches'
+        description: 'Black and white'
     },
     {
         id: 'biscuit',
         name: 'Biscuit',
         primaryColor: '#8B5A2B',
         secondaryColor: '#FFFFFF',
-        hasPatches: true,
-        description: 'Brown with white patches'
+        description: 'Brown and white'
     },
     {
         id: 'slurp',
         name: 'Slurp',
         primaryColor: '#C8A27E',
         secondaryColor: '#C8A27E',
-        hasPatches: false,
         description: 'Light brown racer'
     },
     {
@@ -52,7 +46,6 @@ const Characters = [
         name: 'Dippy',
         primaryColor: '#A76B3B',
         secondaryColor: '#A76B3B',
-        hasPatches: false,
         description: 'Medium brown speedster'
     },
     {
@@ -60,7 +53,6 @@ const Characters = [
         name: 'Marshmallow',
         primaryColor: '#FFFFFF',
         secondaryColor: '#FFFFFF',
-        hasPatches: false,
         description: 'Pure white racer'
     }
 ];

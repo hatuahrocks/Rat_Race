@@ -89,53 +89,120 @@ class LevelManager {
         const roadY = GameConfig.VIEWPORT.HEIGHT / 2;
         const roadHeight = 320;
         
-        // Main road surface
+        // Main road surface - make it much wider to cover entire screen width
         const road = this.scene.add.rectangle(
-            0, roadY, 
-            GameConfig.VIEWPORT.WIDTH * 2, 
+            -2000, roadY, 
+            GameConfig.VIEWPORT.WIDTH * 6, 
             roadHeight,
             GameConfig.COLORS.ROAD
         );
         road.setOrigin(0, 0.5);
         road.setDepth(-5);
         
-        // Lane dividers
+        // Initialize lane divider arrays for animation
+        this.laneDividers = [];
+        
+        // Initialize offroad spot arrays for animation
+        this.offroadSpots = [];
+        
+        // Lane dividers - create scrolling pattern using containers
         for (let i = 1; i < GameConfig.LANE_COUNT; i++) {
-            const laneY = roadY + GameConfig.LANE_Y_POSITIONS[i] - 40;
+            const laneY = GameConfig.LANE_Y_POSITIONS[i] - 40; // Between lanes
             
-            // Create dashed line effect
-            for (let x = 0; x < GameConfig.VIEWPORT.WIDTH * 2; x += 80) {
+            // Create a container for this lane's dividers
+            const dividerContainer = this.scene.add.container(0, laneY);
+            dividerContainer.setDepth(-4);
+            
+            // Create initial set of dashes in the container - start further left to avoid early disappearing
+            const dashCount = 200; // Enough dashes to cover any reasonable screen width
+            for (let j = -5; j < dashCount; j++) { // Start 5 dashes to the left (400px buffer)
                 const dash = this.scene.add.rectangle(
-                    x, laneY,
+                    j * 80, 0, // Evenly spaced every 80px
                     40, 4,
                     0xFFFFFF
                 );
                 dash.setOrigin(0, 0.5);
-                dash.setDepth(-4);
-                dash.setAlpha(0.5);
+                dash.setAlpha(0.7);
+                dividerContainer.add(dash);
             }
+            
+            // Store the container for animation
+            this.laneDividers.push(dividerContainer);
         }
         
-        // Road edges
+        // Road edges - extend across full width
         const edgeTop = this.scene.add.rectangle(
-            0, roadY - roadHeight/2, 
-            GameConfig.VIEWPORT.WIDTH * 2, 8,
+            -2000, roadY - roadHeight/2, 
+            GameConfig.VIEWPORT.WIDTH * 6, 8,
             0xFFFF00
         );
         edgeTop.setOrigin(0, 0.5);
         edgeTop.setDepth(-4);
         
         const edgeBottom = this.scene.add.rectangle(
-            0, roadY + roadHeight/2, 
-            GameConfig.VIEWPORT.WIDTH * 2, 8,
+            -2000, roadY + roadHeight/2, 
+            GameConfig.VIEWPORT.WIDTH * 6, 8,
             0xFFFF00
         );
         edgeBottom.setOrigin(0, 0.5);
         edgeBottom.setDepth(-4);
+        
+        // Add offroad areas with rough texture
+        this.createOffroadAreas(roadY, roadHeight);
+    }
+    
+    createOffroadAreas(roadY, roadHeight) {
+        // High offroad area (above top lane)
+        const offroadHigh = this.scene.add.rectangle(
+            -2000, GameConfig.OFFROAD_HIGH_Y,
+            GameConfig.VIEWPORT.WIDTH * 6, 60,
+            0x8B7355 // Brown rough terrain
+        );
+        offroadHigh.setOrigin(0, 0.5);
+        offroadHigh.setDepth(-6);
+        
+        // Low offroad area (below bottom lane)
+        const offroadLow = this.scene.add.rectangle(
+            -2000, GameConfig.OFFROAD_LOW_Y,
+            GameConfig.VIEWPORT.WIDTH * 6, 60,
+            0x8B7355 // Brown rough terrain
+        );
+        offroadLow.setOrigin(0, 0.5);
+        offroadLow.setDepth(-6);
+        
+        // Add rough texture pattern to offroad areas
+        console.log('Creating offroad textures at Y positions:', GameConfig.OFFROAD_HIGH_Y, GameConfig.OFFROAD_LOW_Y);
+        this.createOffroadTexture(GameConfig.OFFROAD_HIGH_Y);
+        this.createOffroadTexture(GameConfig.OFFROAD_LOW_Y);
+    }
+    
+    createOffroadTexture(y) {
+        // Create brown spots using simple approach - create individual spots and move them
+        console.log('Creating offroad texture at Y:', y);
+        
+        // Create spots directly, not in a container
+        const spots = [];
+        for (let x = -400; x < 8000; x += 80) { // Same 80px spacing as dividers
+            if (Math.random() < 0.4) { // 40% chance to create a spot
+                const spot = this.scene.add.circle(
+                    x + Phaser.Math.Between(-20, 20), // Add some randomness to X
+                    y + Phaser.Math.Between(-25, 25), // Random Y within offroad area
+                    Phaser.Math.Between(4, 10), // Bigger spots to be more visible
+                    0x654321 // Dark brown
+                );
+                spot.setAlpha(0.8); // More visible
+                spot.setDepth(-5);
+                spots.push(spot);
+            }
+        }
+        
+        // Store spots for animation
+        this.offroadSpots.push({ spots: spots, isSpotArray: true });
+        console.log('Created', spots.length, 'individual offroad spots at Y:', y);
     }
     
     createFinishLine(x) {
-        const finishContainer = this.scene.add.container(x, GameConfig.VIEWPORT.HEIGHT / 2);
+        const finishContainer = this.scene.add.container(x, GameConfig.VIEWPORT.HEIGHT / 2 + 10); // Shift down 10px (split the difference)
         
         // Checkered pattern
         const tileSize = 20;
@@ -178,6 +245,48 @@ class LevelManager {
         // Calculate race progress
         this.raceProgress = Math.min(this.distanceTraveled / GameConfig.RACE_DISTANCE, 1);
         
+        // Animate lane dividers moving toward player using modulo for seamless looping
+        if (this.laneDividers && scrollSpeed > 0) {
+            this.laneDividers.forEach(dividerContainer => {
+                // Move the entire container at same speed as other elements
+                dividerContainer.x -= scrollSpeed;
+                
+                // Use modulo to create seamless looping pattern
+                // Reset when we've moved one dash spacing (80px)
+                if (dividerContainer.x <= -80) {
+                    dividerContainer.x += 80; // Reset by one dash spacing
+                }
+            });
+        }
+        
+        // Animate offroad spots - move individual spots
+        if (this.offroadSpots && scrollSpeed > 0) {
+            if (Math.random() < 0.01) { // Log 1% of the time
+                console.log('Updating offroad spots, groups:', this.offroadSpots.length, 'scrollSpeed:', scrollSpeed);
+            }
+            
+            this.offroadSpots.forEach((spotGroup, groupIndex) => {
+                if (spotGroup.isSpotArray && spotGroup.spots) {
+                    // Move individual spots
+                    spotGroup.spots.forEach((spot, spotIndex) => {
+                        spot.x -= scrollSpeed;
+                        
+                        // Reset spot when it goes off screen left - give much more buffer
+                        if (spot.x < -400) { // Much further left to avoid early disappearing
+                            spot.x += 8400; // Move to far right (8000 + 400 buffer)
+                        }
+                        
+                        // Debug logging
+                        if (groupIndex === 0 && spotIndex === 0 && Math.random() < 0.005) {
+                            console.log('Moving spot:', spot.x, 'scrollSpeed:', scrollSpeed);
+                        }
+                    });
+                }
+            });
+        } else if (Math.random() < 0.01) {
+            console.log('Offroad spots not updating - offroadSpots:', !!this.offroadSpots, 'scrollSpeed:', scrollSpeed);
+        }
+        
         // Check for race completion
         if (this.raceProgress >= 1 && !this.isRaceComplete) {
             this.isRaceComplete = true;
@@ -188,7 +297,7 @@ class LevelManager {
             }
         }
         
-        // Scroll finish line
+        // Scroll finish line at same speed as other elements
         if (this.finishLine) {
             this.finishLine.x -= scrollSpeed;
         }

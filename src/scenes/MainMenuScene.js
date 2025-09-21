@@ -62,6 +62,9 @@ class MainMenuScene extends Phaser.Scene {
         });
         credits.setOrigin(0.5);
         
+        // Initialize palette swap system for detailed rat
+        this.paletteSwap = new PaletteSwap(this);
+        
         // Add sample rat animation
         this.createSampleRat();
     }
@@ -163,13 +166,13 @@ class MainMenuScene extends Phaser.Scene {
         const wheel1 = this.add.circle(-12, 20, 6, 0x222222);
         const wheel2 = this.add.circle(12, 20, 6, 0x222222);
         
-        // Simple rat
-        const ratBody = this.add.ellipse(0, -5, 25, 30, 0xF8E6A0);
-        const ratHead = this.add.circle(0, -15, 12, 0xF8E6A0);
-        const ear1 = this.add.circle(-6, -25, 5, 0xF8E6A0);
-        const ear2 = this.add.circle(6, -25, 5, 0xF8E6A0);
+        // Create detailed rat with facial features
+        const character = Characters[0]; // Use Butter as default
+        const detailedRat = this.paletteSwap.createRatSprite(character);
+        detailedRat.setScale(0.8);
+        detailedRat.y = -8;
         
-        ratContainer.add([car, wheel1, wheel2, ratBody, ratHead, ear1, ear2]);
+        ratContainer.add([car, wheel1, wheel2, detailedRat]);
         
         // Animate across screen
         this.tweens.add({
@@ -178,13 +181,13 @@ class MainMenuScene extends Phaser.Scene {
             duration: 8000,
             repeat: -1,
             onRepeat: () => {
-                // Change rat color on each pass
+                // Change rat character on each pass
                 const character = Phaser.Math.RND.pick(Characters);
-                const color = Phaser.Display.Color.HexStringToColor(character.primaryColor).color;
-                ratBody.setFillStyle(color);
-                ratHead.setFillStyle(color);
-                ear1.setFillStyle(color);
-                ear2.setFillStyle(color);
+                ratContainer.removeAt(3); // Remove old rat
+                const newRat = this.paletteSwap.createRatSprite(character);
+                newRat.setScale(0.8);
+                newRat.y = -8;
+                ratContainer.add(newRat);
             }
         });
         

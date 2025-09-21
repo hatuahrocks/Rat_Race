@@ -1,302 +1,148 @@
-# Rat Racer - Project Overview & Planning Document
+# Rat Racer - Phaser 3 HTML5 Game
 
-## Project Summary
-- **Title:** Rat Racer
-- **Genre:** Side-scrolling, lane-based racing game
-- **Platform:** HTML5 (Phaser 3), optimized for iPad Safari
-- **Target:** Kid-friendly racing game with simple controls
-- **Core Loop:** Select rat → Race through themed levels → Avoid obstacles → Use boost strategically → Finish first
+## Current Game State
+A fully functional Excitebike-style racing game with advanced collision mechanics, 6-lane system, and comprehensive visual effects.
 
-## Game Design
+## Key Features Implemented
 
-### Core Mechanics
-- **Lane-based movement:** 4 lanes with swipe up/down controls
-- **Boost system:** Primary action button (no manual jump)
-- **Ramps:** Automatic airtime when hitting ramps
-- **Obstacles:** Theme-appropriate hazards that slow players
-- **Open-top vehicles:** Rats visible sitting in cars
+### Core Racing Mechanics
+- **6-Lane System**: 4 road lanes (0-3) + 2 offroad lanes (-1 high, 4 low)
+- **Extended Lane Mapping**: Uses `extendedLane` property (-1 to 4) for full lane management
+- **Lane Change Animations**: Smooth transitions between lanes with progress tracking
+- **Speed Management**: Base speed increased by 30% for faster gameplay
 
-### Controls
-#### Touch (Primary - iPad)
-- **Swipe Up:** Move one lane up
-- **Swipe Down:** Move one lane down
-- **Boost Button:** Large on-screen button (hold or tap modes)
+### Collision System
+- **Vehicle-to-Vehicle Collisions**: 
+  - Rear-end collisions boost front vehicle (40% speed for 1.5 seconds)
+  - Side collisions push vehicles into adjacent lanes or offroad
+  - Collision cooldowns prevent spam collisions
+- **Obstacle Interactions**: Vehicles stop completely when hitting obstacles
+- **Vehicle Blocking**: Vehicles cannot pass through each other
 
-#### Keyboard (Fallback)
-- **Up/Down Arrows:** Lane changes
-- **Spacebar/Right Arrow:** Boost
+### Offroad Mechanics
+- **Offroad Areas**: Upper (-1) and lower (4) offroad lanes with brown terrain
+- **Speed Penalty**: 25% slowdown when offroad (`GameConfig.OFFROAD_SLOWDOWN`)
+- **Visual Effects**:
+  - Rumble animation (6px amplitude for player, 4px for AI, doubled when offroad)
+  - Dust particles behind vehicle (darker brown, world-space coordinates)
+  - Reduced vehicle opacity (0.8 alpha)
+- **Dark Brown Spots**: Animated terrain details moving at lane divider speed
 
-### Boost Modes
-1. **Hold Mode (Default):** Hold to consume meter continuously
-2. **Partial Mode:** Each press consumes fixed chunk (20%)
+### Visual Effects & UI
+- **Car Color Selection**: 8 color options after character selection
+- **Boost Effects**: Particle systems and visual feedback
+- **Collision Feedback**: Exclamation marks and particle effects when pushed/boosted
+- **Airborne System**: Shadow effects and physics for ramp jumps
+- **Scrolling Elements**: All visual elements (dividers, obstacles, finish line) sync with player speed
 
-## Character Roster
-
-### Rat Presets (8 Characters)
-All rats use layered SVG system with recolorable parts:
-
-| Name | Primary Color | Secondary Color | Special |
-|------|--------------|-----------------|---------|
-| **Butter** | #F8E6A0 | #F8E6A0 | Monotone cream |
-| **Duke** | #8D8D93 | #FFFFFF | Grey/white two-tone |
-| **Daisy** | #8A4FFF | #FFFFFF | Purple/white two-tone |
-| **Pip** | #111111 | #FFFFFF | Black with patches |
-| **Biscuit** | #8B5A2B | #FFFFFF | Brown with patches |
-| **Slurp** | #C8A27E | #C8A27E | Light brown monotone |
-| **Dippy** | #A76B3B | #A76B3B | Medium brown monotone |
-| **Marshmallow** | #FFFFFF | #FFFFFF | All white |
-
-### Visual System
-- **Character Cards:** Large detailed view on selection screen
-- **In-Race:** Simplified smaller sprites with layered colors
-- **Patches:** Randomized patch placement for Pip & Biscuit
-
-## Level Themes & Obstacles
-
-### Indoor Themes
-1. **Living Room**
-   - Obstacles: Sofa, TV, chairs, coffee table
-   - Ramps: Book stacks, cushions
-   
-2. **Kitchen**
-   - Obstacles: Table legs, vacuum, dropped food
-   - Ramps: Cutting boards, pot lids
-   
-3. **Stairs**
-   - Obstacles: Toys, shoes
-   - Ramps: Built-in stair levels
-
-### Outdoor Themes
-1. **Backyard**
-   - Obstacles: Lawnmower, garden hose, sprinkler
-   - Ramps: Garden tools, dirt mounds
-   
-2. **Pool Area**
-   - Obstacles: Pool floats, deck chairs, crabs
-   - Ramps: Diving board, inflatable toys
-   
-3. **Beach**
-   - Obstacles: Sandcastles, crabs, shells
-   - Ramps: Sand dunes, surfboards
-   
-4. **Sidewalk/Street**
-   - Obstacles: Trash cans, fire hydrants, pigeons
-   - Ramps: Curbs, skateboard ramps
+### AI Behavior
+- **Smart Decision Making**: Lane changes to avoid obstacles
+- **Offroad Compliance**: AI vehicles properly slow down when offroad
+- **Collision Responses**: AI receives boosts and gets pushed like player
+- **Extended Lane Usage**: AI uses full 6-lane system including offroad
 
 ## Technical Architecture
 
-### Scene Structure
-1. **PreloadScene** - Asset loading with progress bar
-2. **MainMenuScene** - Title screen with Play/Settings
-3. **SelectionScene** - Character card selection UI
-4. **GameScene** - Main racing gameplay
-5. **UIScene** - HUD overlay (boost meter, position, distance)
-6. **RaceEndScene** - Results and replay options
+### Key Files and Their Roles
 
-### Core Systems
-- **Vehicle System:** Player & AI vehicle physics, lane management
-- **Input Manager:** Touch swipe detection, keyboard fallback
-- **Obstacle Spawner:** Procedural obstacle placement
-- **Level Manager:** Theme selection, distance tracking
-- **Audio Manager:** SFX and music playback
-- **Palette System:** Runtime SVG recoloring
-- **Patches Manager:** Dynamic patch generation
+#### Core Game Objects
+- `src/objects/PlayerVehicle.js`: Player vehicle with full collision, offroad, and boost mechanics
+- `src/objects/AIVehicle.js`: AI opponents with matching player mechanics
+- `src/objects/Obstacle.js`: Static obstacles that stop vehicles
+- `src/objects/Ramp.js`: Jump ramps with airborne physics
 
-### Game Constants
+#### Scene Management
+- `src/scenes/GameScene.js`: Main racing scene with collision detection and vehicle management
+- `src/scenes/CarColorSelectionScene.js`: Car color picker (8 options)
+- `src/scenes/CharacterSelectionScene.js`: Character selection
+- `src/scenes/UIScene.js`: HUD with boost meter and race progress
+
+#### Systems
+- `src/systems/LevelManager.js`: Road rendering, lane dividers, offroad areas, finish line
+- `src/systems/ObstacleSpawner.js`: Obstacle and ramp generation
+- `src/systems/InputManager.js`: Keyboard/touch input handling
+- `src/systems/AudioManager.js`: Sound effects (placeholder)
+
+#### Configuration
+- `src/config/config.js`: All game constants and settings
+- `src/config/Characters.js`: Available rat characters
+- `src/config/LevelThemes.js`: Visual themes for different tracks
+
+### Important Game Constants
 ```javascript
-LANE_COUNT: 4
-LANE_Y_POSITIONS: [-120, -40, 40, 120]
-BASE_FORWARD_SPEED: 200 px/sec
-BOOST_SPEED_MULTIPLIER: 1.6
-BOOST_MAX_SECONDS: 3
-BOOST_REGEN_PER_SEC: 0.5
-AIR_IMPULSE: -420 (vertical velocity)
-GRAVITY: 1600
-OBSTACLE_SLOW_AMOUNT: 0.5 (50% speed)
-OBSTACLE_SLOW_DURATION: 1.2 seconds
-RACE_DISTANCE: 10000 px
-SWIPE_THRESHOLD: 30 px
+EXTENDED_LANE_POSITIONS: [184, 264, 344, 424, 504, 584] // Y positions for all 6 lanes
+OFFROAD_SLOWDOWN: 0.75 // 25% speed reduction
+BASE_FORWARD_SPEED: 312 // Increased by 30% from original
+BOOST_SPEED_MULTIPLIER: 1.8 // Boost multiplier
 ```
 
-## Development Roadmap
+## Recent Major Fixes
+1. **AI Offroad Slowdown**: AI vehicles now properly slow down when offroad
+2. **Collision Boost System**: Enhanced with visual feedback and proper speed management
+3. **Lane Pushing**: Bidirectional pushing system works for all lane types
+4. **Visual Synchronization**: All moving elements sync with player speed
+5. **Extended Lane System**: Unified 6-lane system for both player and AI
 
-### MVP (Current)
-- [x] Basic lane movement with swipe/keyboard
-- [x] Boost system implementation
-- [x] Ramp physics with airtime
-- [x] Obstacle collision & slowdown
-- [x] 8 rat character presets
-- [x] Selection UI with character cards
-- [x] Basic AI opponents
-- [x] Race completion logic
+## Known Working Features
+- ✅ 6-lane racing with voluntary offroad movement
+- ✅ Vehicle-to-vehicle collisions with boost effects
+- ✅ Lane pushing mechanics (including offroad pushing)
+- ✅ Offroad visual effects (dust, rumble, terrain spots)
+- ✅ Obstacle blocking (vehicles stop completely)
+- ✅ Ramp jumping with airborne physics
+- ✅ Car color selection screen
+- ✅ AI opponents with human-like behavior
+- ✅ Synchronized visual elements
+- ✅ Proper speed management for all scenarios
 
-### Version 1.0
-- [ ] Polish all placeholder art
-- [ ] Add sound effects and music
-- [ ] Implement all 7 level themes
-- [ ] Add particle effects
-- [ ] Leaderboard system
-- [ ] Settings menu (volume, controls)
+## Game Flow
+1. **Character Selection**: Choose from 8 rat characters
+2. **Car Color Selection**: Pick from 8 car color combinations
+3. **Racing**: 6-lane racing with strategic offroad usage
+4. **Collision Mechanics**: Bump and boost other racers
+5. **Obstacles**: Navigate around stopping obstacles
+6. **Finish**: Cross finish line to complete race
 
-### Post-Launch
-- [ ] Additional characters
-- [ ] Championship mode
-- [ ] Unlockable vehicles
-- [ ] Time trial mode
-- [ ] Multiplayer support
+## Controls
+- **Arrow Keys**: Lane changes (up/down)
+- **Spacebar**: Boost
+- **Touch/Swipe**: Mobile controls for lane changes
 
-## Asset Checklist
-
-### SVG Assets (Placeholder)
-- [x] 8 rat character bases
-- [x] 3 patch variants
-- [x] Open-top car sprite
-- [x] Basic obstacles (6 types)
-- [x] Ramp objects
-- [x] UI elements (buttons, meters)
-
-### Audio (To Add)
-- [ ] Engine loop
-- [ ] Boost sound
-- [ ] Collision/crash SFX
-- [ ] Ramp launch sound
-- [ ] Victory fanfare
-- [ ] Background music (3 tracks)
-- [ ] UI click sounds
-
-### Backgrounds
-- [ ] 7 themed backgrounds (parallax layers)
-- [ ] Start/finish line graphics
-- [ ] Track decorations
-
-## Mobile Optimization
-
-### Performance Targets
-- 60 FPS on iPad Air 2+
-- < 3 second initial load
-- < 50MB total package size
-
-### Optimization Strategies
-1. Use SVG for scalable graphics
-2. Implement object pooling for obstacles
-3. Minimize draw calls with sprite batching
-4. Lazy load non-critical assets
-5. Use CSS containment for UI elements
-6. Throttle non-critical updates
-
-## Packaging & Distribution
-
-### Newgrounds Export
-1. Run `npm run build-zip`
-2. Ensure index.html at root
-3. Include all assets in relative paths
-4. Test in Newgrounds preview
-5. Submit with appropriate tags
-
-### PWA Support
-- manifest.json configured
-- Service worker for offline play
-- App icons in multiple sizes
-- Install prompt implementation
-
-### Native App (Future)
-- Capacitor.js integration ready
-- iOS build configuration
-- App Store assets preparation
-- TestFlight beta testing
-
-## Testing Checklist
-
-### Functionality
-- [ ] All 8 characters selectable
-- [ ] Lane changes responsive
-- [ ] Boost depletes and regenerates
-- [ ] Ramps create proper airtime
-- [ ] Obstacles slow vehicles
-- [ ] Race completes at distance
-- [ ] AI opponents behave correctly
-
-### Device Testing
-- [ ] iPad Safari (primary)
-- [ ] iPhone Safari
-- [ ] Chrome Desktop
-- [ ] Firefox Desktop
-- [ ] Chrome Android
-
-### Performance
-- [ ] Maintain 60 FPS during gameplay
-- [ ] No memory leaks over extended play
-- [ ] Quick scene transitions
-- [ ] Responsive touch controls
-
-## Next Steps (Post-Prototype)
-
-1. **Art Polish**
-   - Commission final rat character art
-   - Create detailed vehicle designs
-   - Design themed obstacle sets
-   - Develop parallax backgrounds
-
-2. **Audio Integration**
-   - Record/source sound effects
-   - Commission background music
-   - Implement dynamic audio mixing
-   - Add voice clips for characters
-
-3. **Gameplay Tuning**
-   - Balance boost regeneration
-   - Adjust AI difficulty curve
-   - Fine-tune obstacle spawn rates
-   - Perfect ramp physics feel
-
-4. **User Testing**
-   - Kids playtesting sessions
-   - Parent feedback collection
-   - Accessibility review
-   - Control scheme validation
-
-5. **Launch Preparation**
-   - Newgrounds submission
-   - itch.io page setup
-   - Social media assets
-   - Gameplay trailer
-
-## Development Commands
-
+## Testing Commands
 ```bash
-# Install dependencies
-npm install
+# Start development server
+npm run dev
 
-# Run development server
-npm start
+# Run linting
+npm run lint
 
-# Build for production
-npm run build
-
-# Create Newgrounds ZIP
-npm run build-zip
-
-# Run tests
-npm test
+# Run type checking  
+npm run typecheck
 ```
+
+## Development Notes
+- Game uses Phaser 3 framework
+- All coordinates are in pixels
+- Extended lane system maps -1→0, 0→1, 1→2, 2→3, 3→4, 4→5 for array indexing
+- Collision detection uses distance calculations with vehicle-specific ranges
+- Speed management considers offroad status, boost state, and collision effects
+- Visual effects use world coordinates for proper movement synchronization
 
 ## File Structure
 ```
-rat-racer/
+RatRace/
 ├── index.html
-├── package.json
-├── CLAUDE.md
+├── main.py (server)
 ├── src/
-│   ├── main.js
 │   ├── config/
-│   │   └── config.js
+│   │   ├── config.js
+│   │   ├── Characters.js
+│   │   └── LevelThemes.js
 │   ├── scenes/
-│   │   ├── PreloadScene.js
-│   │   ├── MainMenuScene.js
-│   │   ├── SelectionScene.js
 │   │   ├── GameScene.js
-│   │   ├── UIScene.js
-│   │   └── RaceEndScene.js
+│   │   ├── CarColorSelectionScene.js
+│   │   ├── CharacterSelectionScene.js
+│   │   └── UIScene.js
 │   ├── objects/
 │   │   ├── PlayerVehicle.js
 │   │   ├── AIVehicle.js
@@ -309,25 +155,9 @@ rat-racer/
 │   │   ├── LevelManager.js
 │   │   ├── PaletteSwap.js
 │   │   └── PatchesManager.js
-│   └── data/
-│       └── characters.js
-├── assets/
-│   ├── svg/
-│   │   ├── rats/
-│   │   ├── vehicles/
-│   │   ├── obstacles/
-│   │   └── ui/
-│   ├── png/
-│   └── audio/
-└── docs/
-    └── packaging.md
+│   └── main.js
 ```
 
-## Contact & Support
-- GitHub Issues: [Project Repository]
-- Discord: [Community Server]
-- Email: support@ratracer.game
-
 ---
-*Last Updated: [Current Date]*
-*Version: 0.1.0-prototype*
+*Last Updated: 2025-09-21*
+*Current State: Fully Functional Racing Game with Advanced Collision Mechanics*

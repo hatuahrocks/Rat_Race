@@ -77,6 +77,7 @@ class ObstacleSpawner {
         if (this.isLaneClear(lane)) {
             const ramp = new Ramp(this.scene, this.spawnX, y, lane);
             this.ramps.push(ramp);
+            console.log('Ramp spawned at lane', lane, 'position', this.spawnX, y);
         }
     }
     
@@ -109,6 +110,10 @@ class ObstacleSpawner {
         for (let obstacle of this.obstacles) {
             if (Math.abs(obstacle.x - vehicleX) < collisionRange && 
                 Math.abs(obstacle.y - vehicleY) < 30) {
+                // Store reference to blocking obstacle
+                if (vehicle.hitObstacle) {
+                    vehicle.blockingObstacle = obstacle;
+                }
                 return { type: 'obstacle', object: obstacle };
             }
         }
@@ -117,14 +122,42 @@ class ObstacleSpawner {
         for (let ramp of this.ramps) {
             if (Math.abs(ramp.x - vehicleX) < collisionRange && 
                 Math.abs(ramp.y - vehicleY) < 30) {
-                if (!ramp.hasBeenHit) {
+                // Check if this specific vehicle has already hit this ramp
+                if (!ramp.hitVehicles) {
+                    ramp.hitVehicles = new Set();
+                }
+                if (!ramp.hitVehicles.has(vehicle)) {
+                    console.log('Ramp collision detected!', ramp.x, vehicleX, ramp.y, vehicleY);
                     ramp.onHit();
+                    ramp.hitVehicles.add(vehicle);
                     return { type: 'ramp', object: ramp };
                 }
             }
         }
         
         return null;
+    }
+    
+    isLaneClearForVehicle(lane, startX, endX) {
+        const laneY = GameConfig.LANE_Y_POSITIONS[lane];
+        
+        // Check obstacles in the lane change path
+        for (let obstacle of this.obstacles) {
+            if (Math.abs(obstacle.y - laneY) < 30 && 
+                obstacle.x >= startX - 50 && obstacle.x <= endX + 50) {
+                return false;
+            }
+        }
+        
+        // Check ramps in the lane change path
+        for (let ramp of this.ramps) {
+            if (Math.abs(ramp.y - laneY) < 30 && 
+                ramp.x >= startX - 50 && ramp.x <= endX + 50) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     reset() {

@@ -11,15 +11,16 @@ class SelectionScene extends Phaser.Scene {
         
         this.cameras.main.setBackgroundColor('#2C3E50');
         
-        // Title
-        const title = this.add.text(width / 2, 50, 'SELECT YOUR RACER', {
-            fontSize: '48px',
+        // Title (positioned higher and more visible)
+        const title = this.add.text(width / 2, 80, 'SELECT YOUR RACER', {
+            fontSize: '32px',
             fontFamily: 'Arial Black',
             color: '#FFD700',
             stroke: '#000000',
-            strokeThickness: 6
+            strokeThickness: 4
         });
         title.setOrigin(0.5);
+        title.setDepth(1000); // Ensure it's on top
         
         // Create character selection grid
         this.createCharacterGrid();
@@ -58,9 +59,9 @@ class SelectionScene extends Phaser.Scene {
         const gridHeight = (Math.ceil(Characters.length / cols) * cardHeight) + 
                           ((Math.ceil(Characters.length / cols) - 1) * spacing);
         
-        // Center the grid
+        // Center the grid with proper spacing below title
         const startX = (width - gridWidth) / 2 + (cardWidth / 2);
-        const startY = 120; // Fixed top margin
+        const startY = 160; // Margin below title (title now at Y=80)
         
         Characters.forEach((character, index) => {
             const col = index % cols;
@@ -187,28 +188,7 @@ class SelectionScene extends Phaser.Scene {
         container.add([body, belly, head, face, earLeft, earRight, 
                       innerEarLeft, innerEarRight, eyeLeft, eyeRight, nose]);
         
-        // Add patches if character has them
-        if (character.hasPatches) {
-            const patches = [];
-            
-            // Create specific patch patterns for each patched character
-            if (character.id === 'pip') {
-                // Black rat with white patches
-                patches.push(this.add.ellipse(-15, -5, 18, 14, 0xFFFFFF));
-                patches.push(this.add.circle(10, 15, 10, 0xFFFFFF));
-                patches.push(this.add.ellipse(5, -25, 10, 8, 0xFFFFFF));
-            } else if (character.id === 'biscuit') {
-                // Brown rat with white patches
-                patches.push(this.add.circle(-10, 0, 12, 0xFFFFFF));
-                patches.push(this.add.ellipse(12, 10, 16, 12, 0xFFFFFF));
-                patches.push(this.add.circle(-5, -30, 8, 0xFFFFFF));
-            }
-            
-            patches.forEach(patch => {
-                patch.setAlpha(0.9);
-                container.add(patch);
-            });
-        }
+        // Simple two-tone design - no patches needed
         
         return container;
     }
@@ -242,7 +222,7 @@ class SelectionScene extends Phaser.Scene {
         bg.setStrokeStyle(3, 0x000000);
         bg.setInteractive({ useHandCursor: true });
         
-        const text = this.add.text(0, 0, 'START RACE!', {
+        const text = this.add.text(0, 0, 'NEXT', {
             fontSize: '24px',
             fontFamily: 'Arial',
             color: '#000000',
@@ -253,8 +233,7 @@ class SelectionScene extends Phaser.Scene {
         button.add([bg, text]);
         
         bg.on('pointerdown', () => {
-            this.scene.start('GameScene');
-            this.scene.launch('UIScene');
+            this.scene.start('CarColorSelectionScene');
         });
         
         bg.on('pointerover', () => {

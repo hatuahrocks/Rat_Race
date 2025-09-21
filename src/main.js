@@ -19,6 +19,7 @@ const config = {
         PreloadScene,
         MainMenuScene,
         SelectionScene,
+        CarColorSelectionScene,
         GameScene,
         UIScene,
         RaceEndScene

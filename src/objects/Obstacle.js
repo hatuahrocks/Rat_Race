@@ -145,10 +145,10 @@ class Obstacle extends Phaser.GameObjects.Container {
     }
     
     update(scrollSpeed) {
-        this.x -= scrollSpeed;
+        this.x -= scrollSpeed; // Move at same speed as all other elements
         
-        // Deactivate if off screen
-        if (this.x < -100) {
+        // Deactivate if off screen (give much more buffer to avoid early disappearing)
+        if (this.x < -400) {
             this.isActive = false;
             this.destroy();
         }

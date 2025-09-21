@@ -56,6 +56,9 @@ class RaceEndScene extends Phaser.Scene {
         });
         position.setOrigin(0.5);
         
+        // Initialize palette swap system for detailed character display
+        this.paletteSwap = new PaletteSwap(this);
+        
         // Character display
         this.createCharacterDisplay();
         
@@ -90,17 +93,12 @@ class RaceEndScene extends Phaser.Scene {
         const wheel1 = this.add.circle(-25, 35, 12, 0x222222);
         const wheel2 = this.add.circle(25, 35, 12, 0x222222);
         
-        // Create rat
-        const ratBody = this.add.ellipse(0, -10, 40, 50,
-            Phaser.Display.Color.HexStringToColor(this.character.primaryColor).color);
-        const ratFace = this.add.ellipse(0, -15, 30, 35,
-            Phaser.Display.Color.HexStringToColor(this.character.secondaryColor).color);
-        const earLeft = this.add.circle(-12, -35, 10,
-            Phaser.Display.Color.HexStringToColor(this.character.primaryColor).color);
-        const earRight = this.add.circle(12, -35, 10,
-            Phaser.Display.Color.HexStringToColor(this.character.primaryColor).color);
+        // Create detailed rat using the same system as in-game
+        const detailedRat = this.paletteSwap.createRatSprite(this.character);
+        detailedRat.setScale(1.5); // Make it larger for the finish screen
+        detailedRat.y = -10; // Position it in the car
         
-        container.add([car, wheel1, wheel2, ratBody, ratFace, earLeft, earRight]);
+        container.add([car, wheel1, wheel2, detailedRat]);
         
         // Add animation
         this.tweens.add({

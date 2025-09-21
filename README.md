@@ -1,31 +1,43 @@
 # 🐀 Rat Racer
 
-A kid-friendly side-scrolling lane racing game built with Phaser 3. Race as one of 8 unique rat characters through themed environments, using boost strategically and hitting ramps for airtime!
+An Excitebike-style racing game built with Phaser 3 featuring advanced collision mechanics, 6-lane racing system, and strategic offroad gameplay. Race as one of 8 unique rat characters with customizable car colors!
 
 ## 🎮 Play Now
 
 ### Local Development
 ```bash
-# Quick start
-npm start
+# Start development server
+python3 main.py
 
-# Then open http://localhost:8080
+# Then open http://localhost:8000
 ```
 
 ## 🎯 Game Features
 
-- **8 Unique Rat Characters** - Each with two-tone colors or patches
-- **Lane-Based Racing** - 4 lanes with swipe controls
-- **Boost System** - Hold or tap modes for strategic speed bursts
-- **Ramps & Airtime** - Automatic launches when hitting ramps
-- **Themed Environments** - Indoor and outdoor racing tracks
-- **AI Opponents** - Race against computer-controlled rats
-- **Mobile Optimized** - Designed for iPad Safari with touch controls
+### Core Racing Mechanics
+- **6-Lane System**: 4 road lanes + 2 offroad lanes for strategic gameplay
+- **Vehicle Collisions**: Bump other racers from behind to boost them forward
+- **Lane Pushing**: Side-impact other vehicles to push them into different lanes
+- **Offroad Racing**: Voluntary offroad movement with 25% speed penalty
+- **Obstacle Navigation**: Vehicles stop completely when hitting obstacles
+
+### Visual & Audio
+- **8 Unique Rat Characters**: Each with distinct colors and personalities
+- **Car Color Customization**: 8 color combinations to choose from
+- **Advanced Visual Effects**: Dust particles, rumble animations, collision feedback
+- **Synchronized Movement**: All visual elements move at proper relative speeds
+- **Ramp Physics**: Airborne system with shadow effects
+
+### AI & Gameplay
+- **Smart AI Opponents**: Lane changes, obstacle avoidance, collision responses
+- **Boost System**: Strategic speed bursts with regeneration meter
+- **Collision Feedback**: Exclamation marks and particle effects
+- **Dynamic Terrain**: Animated offroad spots and lane dividers
 
 ## 🐭 Character Roster
 
 1. **Butter** - Creamy yellow speedster
-2. **Duke** - Grey and white champion
+2. **Duke** - Grey and white champion  
 3. **Daisy** - Purple racing princess
 4. **Pip** - Black with white patches
 5. **Biscuit** - Brown with white patches
@@ -35,111 +47,133 @@ npm start
 
 ## 🎮 Controls
 
-### Touch (iPad/Mobile)
-- **Swipe Up** - Move one lane up
-- **Swipe Down** - Move one lane down
-- **Boost Button** - Large on-screen button (right side)
-
 ### Keyboard
-- **↑/↓ Arrows** - Change lanes
-- **Spacebar/→** - Activate boost
+- **↑/↓ Arrow Keys** - Change lanes (including offroad)
+- **Spacebar** - Activate boost
 
-## 🏗️ Project Structure
+### Touch (Planned)
+- **Swipe Up/Down** - Lane changes
+- **Boost Button** - On-screen boost control
 
+## 🏁 Game Flow
+
+1. **Character Selection** - Choose your rat racer
+2. **Car Color Selection** - Pick from 8 color combinations
+3. **Racing** - 6-lane strategic racing with collision mechanics
+4. **Collision System** - Bump and boost mechanics with visual feedback
+5. **Finish Line** - Cross the finish line to win
+
+## 🎯 Strategic Gameplay
+
+### Lane System
+- **Road Lanes (0-3)**: Normal speed racing lanes
+- **Offroad Lanes (-1, 4)**: 25% speed penalty but strategic positioning
+- **Lane Pushing**: Push opponents offroad to slow them down
+- **Voluntary Offroad**: Choose to go offroad to avoid traffic
+
+### Collision Mechanics
+- **Rear-End Collisions**: Boost the vehicle in front (40% speed for 1.5 seconds)
+- **Side Collisions**: Push vehicles into adjacent lanes or offroad
+- **Obstacle Collisions**: Complete stops requiring lane changes to continue
+- **Vehicle Blocking**: Cannot pass through other vehicles
+
+## 🏗️ Technical Architecture
+
+### Core Systems
+- **Extended Lane System**: Unified 6-lane management (-1 to 4)
+- **Collision Detection**: Distance-based with cooldown systems
+- **Speed Management**: Considers offroad status, boost state, collisions
+- **Visual Synchronization**: All elements move relative to player speed
+
+### Key Files
 ```
-rat-racer/
-├── index.html          # Entry point
-├── package.json        # Project config
-├── src/
-│   ├── main.js        # Game initialization
-│   ├── config/        # Game constants
-│   ├── scenes/        # Game scenes
-│   ├── objects/       # Game objects
-│   ├── systems/       # Core systems
-│   └── data/          # Character data
-├── assets/
-│   ├── svg/           # Vector graphics
-│   ├── png/           # Raster fallbacks
-│   └── audio/         # Sound effects
-└── docs/              # Documentation
+src/
+├── objects/
+│   ├── PlayerVehicle.js    # Player vehicle with full mechanics
+│   ├── AIVehicle.js        # AI opponents with matching mechanics
+│   ├── Obstacle.js         # Static obstacles
+│   └── Ramp.js            # Jump ramps with physics
+├── scenes/
+│   ├── GameScene.js        # Main racing scene
+│   ├── CarColorSelectionScene.js  # Car customization
+│   └── CharacterSelectionScene.js # Character picker
+├── systems/
+│   ├── LevelManager.js     # Road rendering and visual elements
+│   ├── ObstacleSpawner.js  # Obstacle generation
+│   └── InputManager.js     # Control handling
+└── config/
+    ├── config.js           # Game constants
+    ├── Characters.js       # Character definitions
+    └── LevelThemes.js      # Visual themes
 ```
 
-## 🚀 Building for Distribution
-
-### Newgrounds
-```bash
-npm run build-zip
-# Creates rat-racer.zip ready for upload
-```
-
-### Web Hosting
-Simply upload all files to any static web server. The game runs entirely in the browser with no backend required.
-
-## 📱 Mobile Testing
-
-1. Start local server: `npm start`
-2. Find your IP: `ifconfig` (Mac/Linux) or `ipconfig` (Windows)
-3. On mobile device: Navigate to `http://YOUR_IP:8080`
-
-## 🛠️ Development
+## 🚀 Development
 
 ### Requirements
+- Python 3 (for local server)
 - Modern web browser
-- Python 3 or Node.js (for local server)
-- No build step required for development
+- No build tools required
 
-### Key Technologies
-- **Phaser 3** - HTML5 game framework
-- **SVG Graphics** - Scalable vector graphics
-- **Touch Events** - Mobile-first input handling
-- **ES6 JavaScript** - Modern JavaScript features
+### Testing Commands
+```bash
+# Start server
+python3 main.py
 
-## 📈 Performance Targets
+# Access at http://localhost:8000
+```
 
-- **60 FPS** on iPad Air 2+
-- **< 3 second** initial load time
-- **< 50MB** total package size
-- **Responsive** scaling for all screen sizes
+### Key Configuration
+```javascript
+// Game Constants (src/config/config.js)
+EXTENDED_LANE_POSITIONS: [184, 264, 344, 424, 504, 584] // 6 lanes
+OFFROAD_SLOWDOWN: 0.75          // 25% speed reduction offroad
+BASE_FORWARD_SPEED: 312         // Base racing speed
+BOOST_SPEED_MULTIPLIER: 1.8     // Boost multiplier
+```
 
-## 🎨 Customization
+## ✅ Implemented Features
 
-### Adding Characters
-Edit `src/data/characters.js` to add new rat presets with custom colors.
+- ✅ 6-lane racing system with offroad lanes
+- ✅ Vehicle-to-vehicle collision system
+- ✅ Lane pushing mechanics (all directions)
+- ✅ Offroad visual effects (dust, rumble, terrain)
+- ✅ Obstacle collision system (complete stops)
+- ✅ Ramp physics with airborne mechanics
+- ✅ Car color customization screen
+- ✅ AI opponents with human-like behavior
+- ✅ Visual element synchronization
+- ✅ Comprehensive speed management
+- ✅ Collision feedback systems
 
-### Creating Themes
-Add new level themes in `src/data/characters.js` under `LevelThemes`.
+## 🎨 Visual Effects
 
-### Adjusting Difficulty
-Modify constants in `src/config/config.js` to tune gameplay.
+### Offroad Effects
+- **Rumble Animation**: Vehicles bounce when offroad (6px player, 4px AI)
+- **Dust Particles**: Dark brown particles trail behind offroad vehicles
+- **Terrain Details**: Animated brown spots moving with lane dividers
+- **Visual Feedback**: Reduced opacity (0.8) when offroad
 
-## 📝 TODO - Next Steps
+### Collision Effects
+- **Boost Particles**: Blue particles when receiving collision boost
+- **Exclamation Marks**: Yellow "!" above pushed vehicles
+- **Speed Lines**: Visual feedback for boost effects
+- **Flash Effects**: Bright effects on collision impacts
 
-### Art & Audio
-- [ ] Commission final rat character art
-- [ ] Create detailed vehicle designs
-- [ ] Design themed obstacle sets
-- [ ] Add sound effects (engine, boost, collision)
-- [ ] Compose background music tracks
+## 📱 Performance
 
-### Features
-- [ ] Implement leaderboards
-- [ ] Add achievement system
-- [ ] Create more level themes
-- [ ] Add power-up system
-- [ ] Implement championship mode
+- **Target**: 60 FPS on modern browsers
+- **Optimized**: Object pooling and efficient rendering
+- **Scalable**: Vector graphics for all screen sizes
+- **Lightweight**: Minimal asset footprint
 
-### Polish
-- [ ] Add particle effects
-- [ ] Improve UI animations
-- [ ] Create intro cutscene
-- [ ] Add tutorial mode
-- [ ] Implement settings menu
+## 🐛 Current Status
 
-## 🐛 Known Issues
-
-- Audio requires user interaction to start (browser requirement)
-- Touch controls need refinement for small screens
-- AI behavior could be more sophisticated
+The game is fully functional with all major mechanics implemented:
+- Advanced collision system working correctly
+- AI vehicles properly respond to offroad slowdown
+- Visual effects synchronized with gameplay
+- 6-lane system supports strategic gameplay
+- Car customization fully integrated
 
 ## 📄 License
 
@@ -147,14 +181,10 @@ MIT License - Feel free to use this code for your own projects!
 
 ## 🤝 Contributing
 
-Contributions welcome! Please feel free to submit a Pull Request.
-
-## 📧 Contact
-
-For questions or feedback, please open an issue on GitHub.
+Contributions welcome! The game architecture is modular and well-documented.
 
 ---
 
-**Made with ❤️ using Phaser 3**
+**Built with Phaser 3 | Current Version: Fully Functional Racing Game**
 
-*Version 0.1.0 - Prototype*
+*Last Updated: 2025-09-21*
