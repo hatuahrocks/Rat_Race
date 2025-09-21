@@ -221,7 +221,12 @@ class AIVehicle extends Phaser.GameObjects.Container {
         // Stop the vehicle instead of slowing down
         this.isBlocked = true;
         this.currentSpeed = 0;
-        
+
+        // Play bump sound effect when hitting obstacle
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('bump');
+        }
+
         // Stop boost if currently boosting
         if (this.isBoosting) {
             this.stopBoost();

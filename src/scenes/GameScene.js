@@ -2,13 +2,20 @@ class GameScene extends Phaser.Scene {
     constructor() {
         super({ key: 'GameScene' });
     }
-    
+
     create() {
+        // Get shared audio manager from registry
+        this.audioManager = this.registry.get('audioManager');
+
+        // Stop menu music when entering race
+        if (this.audioManager) {
+            this.audioManager.stopMusic();
+        }
+
         // Initialize systems
         this.paletteSwap = new PaletteSwap(this);
         this.patchesManager = new PatchesManager(this);
         this.inputManager = new InputManager(this);
-        this.audioManager = new AudioManager(this);
         
         // Get selected character
         const selectedCharacter = this.registry.get('selectedCharacter') || Characters[0];
@@ -161,6 +168,11 @@ class GameScene extends Phaser.Scene {
                 frontVehicle.receiveBoostFromCollision();
                 console.log('Boosted', frontVehicle.constructor.name);
             }
+
+            // Play bump sound effect for rear-end collision
+            if (this.audioManager) {
+                this.audioManager.playSound('bump');
+            }
         } else if (xDistance < 40 && yDistance >= 20) { // Improved side collision detection
             // Side collision - lane pushing
             console.log('Side collision - lane pushing, xDist:', xDistance, 'yDist:', yDistance);
@@ -179,21 +191,21 @@ class GameScene extends Phaser.Scene {
         if (vehicle1.y < vehicle2.y) {
             // vehicle1 is above vehicle2
             if (aggressor === vehicle1) {
-                this.pushVehicle(vehicle2, 1); // Push down
+                this.pushVehicle(vehicle2, 1, aggressor); // Push down
             } else {
-                this.pushVehicle(vehicle1, -1); // Push up
+                this.pushVehicle(vehicle1, -1, aggressor); // Push up
             }
         } else {
             // vehicle2 is above vehicle1
             if (aggressor === vehicle2) {
-                this.pushVehicle(vehicle1, 1); // Push down
+                this.pushVehicle(vehicle1, 1, aggressor); // Push down
             } else {
-                this.pushVehicle(vehicle2, -1); // Push up
+                this.pushVehicle(vehicle2, -1, aggressor); // Push up
             }
         }
     }
     
-    pushVehicle(vehicle, direction) {
+    pushVehicle(vehicle, direction, aggressor = null) {
         // Use extended lane system if available, otherwise use current lane
         const currentExtendedLane = vehicle.extendedLane !== undefined ? vehicle.extendedLane : vehicle.currentLane;
         const newExtendedLane = currentExtendedLane + direction;
@@ -212,13 +224,18 @@ class GameScene extends Phaser.Scene {
             if (vehicle.changeLane) {
                 console.log(`PUSHING ${vehicle.constructor.name} to extended lane ${newExtendedLane}`);
                 vehicle.changeLane(direction);
-                
+
                 // Show exclamation effect when pushed
                 if (vehicle.showExclamationEffect) {
                     vehicle.showExclamationEffect();
                 }
-                
-                console.log('Vehicle pushed to new lane with exclamation effect');
+
+                // Play push sound effect only when player is the aggressor
+                if (this.audioManager && aggressor === this.player) {
+                    this.audioManager.playSoundWithCooldown('push', 800); // 800ms cooldown
+                }
+
+                console.log('Vehicle pushed to new lane with exclamation effect and sound');
             } else {
                 console.log('Push failed - vehicle has no changeLane method');
             }

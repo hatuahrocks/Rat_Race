@@ -4,6 +4,10 @@ class PreloadScene extends Phaser.Scene {
     }
     
     preload() {
+        // Initialize audio manager for preloading
+        this.audioManager = new AudioManager(this);
+        this.audioManager.preload();
+
         // Create loading bar
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -62,16 +66,22 @@ class PreloadScene extends Phaser.Scene {
     }
     
     create() {
+        // Initialize audio manager and create sound objects
+        this.audioManager.create();
+
         // Create placeholder graphics
         this.createRatTextures();
         this.createVehicleTextures();
         this.createObstacleTextures();
         this.createUITextures();
-        
+
         // Initialize systems
         this.registry.set('selectedCharacter', Characters[0]);
         this.registry.set('currentTheme', 'living_room');
-        
+
+        // Store audio manager globally so other scenes can access it
+        this.registry.set('audioManager', this.audioManager);
+
         // Move to main menu
         this.scene.start('MainMenuScene');
     }

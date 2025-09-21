@@ -110,15 +110,27 @@ BOOST_SPEED_MULTIPLIER: 1.8 // Boost multiplier
 
 ## Testing Commands
 ```bash
-# Start development server
-npm run dev
+# Start development server (local only)
+npm start
+
+# Start development server accessible on local network (for iPad/mobile testing)
+python3 -m http.server 8082 --bind 0.0.0.0
 
 # Run linting
 npm run lint
 
-# Run type checking  
+# Run type checking
 npm run typecheck
 ```
+
+## Network Access
+To access the game from iPad/mobile devices on your local WiFi network:
+
+1. **Start network server**: `python3 -m http.server 8082 --bind 0.0.0.0`
+2. **Find your laptop's IP**: `ifconfig | grep "inet " | grep -v 127.0.0.1`
+3. **Access from mobile**: Open `http://[YOUR_IP]:8082` in mobile browser
+   - Example: `http://192.168.1.232:8082`
+4. **Touch controls**: Game supports mobile touch input for lane changes and boost
 
 ## Development Notes
 - Game uses Phaser 3 framework

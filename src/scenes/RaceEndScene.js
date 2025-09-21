@@ -87,9 +87,14 @@ class RaceEndScene extends Phaser.Scene {
     createCharacterDisplay() {
         const width = this.cameras.main.width;
         const container = this.add.container(width / 2, 350);
-        
-        // Create vehicle
-        const car = this.add.rectangle(0, 20, 80, 35, 0x444444);
+
+        // Get the selected car color from registry
+        const selectedCarColor = this.registry.get('selectedCarColor') || { color: 0x333333, accent: 0x444444 };
+
+        // Create vehicle with selected colors
+        const car = this.add.rectangle(0, 20, 80, 35, selectedCarColor.color);
+        const carFront = this.add.rectangle(20, 18, 25, 25, selectedCarColor.accent);
+        const carBack = this.add.rectangle(-20, 18, 20, 25, selectedCarColor.accent);
         const wheel1 = this.add.circle(-25, 35, 12, 0x222222);
         const wheel2 = this.add.circle(25, 35, 12, 0x222222);
         
@@ -98,7 +103,7 @@ class RaceEndScene extends Phaser.Scene {
         detailedRat.setScale(1.5); // Make it larger for the finish screen
         detailedRat.y = -10; // Position it in the car
         
-        container.add([car, wheel1, wheel2, detailedRat]);
+        container.add([car, carFront, carBack, wheel1, wheel2, detailedRat]);
         
         // Add animation
         this.tweens.add({

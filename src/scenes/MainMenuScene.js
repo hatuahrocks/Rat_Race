@@ -2,8 +2,15 @@ class MainMenuScene extends Phaser.Scene {
     constructor() {
         super({ key: 'MainMenuScene' });
     }
-    
+
     create() {
+        // Get shared audio manager from registry
+        this.audioManager = this.registry.get('audioManager');
+
+        // Start menu music immediately
+        if (this.audioManager) {
+            this.audioManager.playMusic('music_menu', true);
+        }
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         

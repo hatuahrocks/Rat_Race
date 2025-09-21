@@ -4,8 +4,15 @@ class SelectionScene extends Phaser.Scene {
         this.selectedIndex = 0;
         this.characterCards = [];
     }
-    
+
     create() {
+        // Get shared audio manager from registry
+        this.audioManager = this.registry.get('audioManager');
+
+        // Continue menu music if not already playing
+        if (this.audioManager && !this.audioManager.currentMusic) {
+            this.audioManager.playMusic('music_menu', true);
+        }
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         

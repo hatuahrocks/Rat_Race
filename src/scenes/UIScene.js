@@ -96,51 +96,67 @@ class UIScene extends Phaser.Scene {
     createBoostButton() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        
+
         // Responsive touch-friendly boost button
         const buttonSize = Math.min(100, Math.max(60, width * 0.12)); // 60-100px based on screen size
         const margin = Math.max(20, width * 0.03); // Responsive margin from edge
-        const button = this.add.container(width - margin - (buttonSize / 2), height - 150);
-        
-        // Button background
-        const bg = this.add.circle(0, 0, buttonSize / 2, 0xFF0000);
-        bg.setStrokeStyle(4, 0x000000);
-        bg.setInteractive({ useHandCursor: true });
-        bg.setAlpha(0.7);
-        
-        // Responsive button text
-        const textSize = Math.min(24, buttonSize * 0.25);
-        const text = this.add.text(0, 0, 'BOOST', {
-            fontSize: `${textSize}px`,
-            fontFamily: 'Arial Black',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: Math.max(2, textSize * 0.1)
-        });
-        text.setOrigin(0.5);
-        
-        button.add([bg, text]);
-        
-        // Touch events
-        bg.on('pointerdown', () => {
-            bg.setScale(0.9);
-            bg.setFillStyle(0xFF6600);
-            this.scene.get('GameScene').events.emit('boostStart');
-        });
-        
-        bg.on('pointerup', () => {
-            bg.setScale(1);
-            bg.setFillStyle(0xFF0000);
-            this.scene.get('GameScene').events.emit('boostEnd');
-        });
-        
-        bg.on('pointerout', () => {
-            bg.setScale(1);
-            bg.setFillStyle(0xFF0000);
-            this.scene.get('GameScene').events.emit('boostEnd');
-        });
-        
-        this.boostButton = button;
+
+        // Helper function to create a boost button
+        const createButton = (x, y) => {
+            const button = this.add.container(x, y);
+
+            // Button background
+            const bg = this.add.circle(0, 0, buttonSize / 2, 0xFF0000);
+            bg.setStrokeStyle(4, 0x000000);
+            bg.setInteractive({ useHandCursor: true });
+            bg.setAlpha(0.7);
+
+            // Responsive button text
+            const textSize = Math.min(24, buttonSize * 0.25);
+            const text = this.add.text(0, 0, 'BOOST', {
+                fontSize: `${textSize}px`,
+                fontFamily: 'Arial Black',
+                color: '#FFFFFF',
+                stroke: '#000000',
+                strokeThickness: Math.max(2, textSize * 0.1)
+            });
+            text.setOrigin(0.5);
+
+            button.add([bg, text]);
+
+            // Touch events
+            bg.on('pointerdown', () => {
+                bg.setScale(0.9);
+                bg.setFillStyle(0xFF6600);
+                this.scene.get('GameScene').events.emit('boostStart');
+            });
+
+            bg.on('pointerup', () => {
+                bg.setScale(1);
+                bg.setFillStyle(0xFF0000);
+                this.scene.get('GameScene').events.emit('boostEnd');
+            });
+
+            bg.on('pointerout', () => {
+                bg.setScale(1);
+                bg.setFillStyle(0xFF0000);
+                this.scene.get('GameScene').events.emit('boostEnd');
+            });
+
+            return button;
+        };
+
+        // Create RIGHT boost button (original position)
+        this.boostButtonRight = createButton(
+            width - margin - (buttonSize / 2),
+            height - 150
+        );
+
+        // Create LEFT boost button (for left-handed boost while right-hand steers)
+        this.boostButtonLeft = createButton(
+            margin + (buttonSize / 2),
+            height - 150
+        );
     }
     
     createLaneIndicators() {
