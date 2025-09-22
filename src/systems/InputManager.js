@@ -24,11 +24,6 @@ class InputManager {
             this.touchStartX = pointer.x;
             this.touchStartY = pointer.y;
             this.isSwiping = true;
-
-            // Check if boost button was pressed (right third of screen)
-            if (pointer.x > this.scene.game.config.width * 0.66) {
-                this.onBoostStart();
-            }
         });
 
         this.scene.input.on('pointermove', (pointer) => {
@@ -50,11 +45,6 @@ class InputManager {
 
         this.scene.input.on('pointerup', (pointer) => {
             this.isSwiping = false;
-
-            // Release boost if in hold mode
-            if (this.boostMode === 'hold' && pointer.x > this.scene.game.config.width * 0.66) {
-                this.onBoostEnd();
-            }
         });
     }
     
