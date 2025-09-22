@@ -287,14 +287,28 @@ class LevelManager {
             console.log('Offroad spots not updating - offroadSpots:', !!this.offroadSpots, 'scrollSpeed:', scrollSpeed);
         }
         
-        // Check for race completion
-        if (this.raceProgress >= 1 && !this.isRaceComplete) {
+        // Check for race completion - create finish line when we're close to the end
+        if (this.raceProgress >= 0.9 && !this.isRaceComplete) {
             this.isRaceComplete = true;
-            
+
             // Create finish line if it doesn't exist
             if (!this.finishLine) {
                 this.createFinishLine(GameConfig.VIEWPORT.WIDTH + 200);
             }
+        }
+
+        // Update progress based on finish line position once it exists
+        if (this.finishLine && this.isRaceComplete) {
+            // Progress should be 100% when finish line reaches x=200 (player crosses it)
+            // Finish line starts at ~1224, so the total travel distance is 1024
+            const finishLineTravel = (GameConfig.VIEWPORT.WIDTH + 200) - this.finishLine.x;
+            const totalFinishLineTravel = (GameConfig.VIEWPORT.WIDTH + 200) - 200;
+            const finishLineProgress = finishLineTravel / totalFinishLineTravel;
+
+            // Blend between distance progress (90%) and finish line progress (90-100%)
+            const baseProgress = 0.9;
+            this.raceProgress = baseProgress + (1 - baseProgress) * finishLineProgress;
+            this.raceProgress = Math.min(this.raceProgress, 1);
         }
         
         // Scroll finish line at same speed as other elements

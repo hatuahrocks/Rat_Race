@@ -71,7 +71,7 @@ class ObstacleSpawner {
         this.strawberries = this.strawberries.filter(strawberry => {
             if (!strawberry.collected) {
                 strawberry.update(scrollSpeed);
-                return strawberry.x > -100; // Remove if off screen
+                return strawberry.x > -400; // Remove when completely off screen (same as obstacles)
             }
             return false; // Remove if collected
         });

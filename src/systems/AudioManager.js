@@ -22,10 +22,14 @@ class AudioManager {
         this.scene.load.audio('push', 'assets/audio/push.mp3');
         this.scene.load.audio('powerup', 'assets/audio/powerup.mp3');
         this.scene.load.audio('music_menu', 'assets/audio/music_menu.mp3');
+        this.scene.load.audio('brake', 'assets/audio/brake.mp3');
+        this.scene.load.audio('manualboost', 'assets/audio/manualboost.mp3');
+        this.scene.load.audio('bump2', 'assets/audio/bump2.mp3');
+
+        this.scene.load.audio('boost', 'assets/audio/boost.mp3');
 
         // These files don't exist yet - commented out to prevent 404 errors:
         // this.scene.load.audio('countdown', 'assets/audio/countdown.mp3');
-        // this.scene.load.audio('boost', 'assets/audio/boost.mp3');
         // this.scene.load.audio('engine_idle', 'assets/audio/engine_idle.mp3');
         // this.scene.load.audio('engine_mid', 'assets/audio/engine_mid.mp3');
         // this.scene.load.audio('engine_high', 'assets/audio/engine_high.mp3');
@@ -38,7 +42,7 @@ class AudioManager {
         const soundKeys = [
             'countdown', 'bump', 'ramp', 'push', 'boost', 'powerup',
             'engine_idle', 'engine_mid', 'engine_high', 'engine_drag',
-            'music_menu', 'music_race'
+            'music_menu', 'music_race', 'brake', 'manualboost', 'bump2'
         ];
 
         soundKeys.forEach(key => {

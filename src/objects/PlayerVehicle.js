@@ -107,8 +107,9 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
     }
     
     changeLane(direction) {
-        if (this.isAirborne || this.isChangingLanes) return false;
-        
+        if (this.isAirborne) return false;
+
+        // Calculate new target lane from current logical position
         const newExtendedLane = this.extendedLane + direction;
         
         console.log(`PlayerVehicle changeLane: from ${this.extendedLane} to ${newExtendedLane} (direction: ${direction})`);
@@ -120,7 +121,8 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         }
         
         // Check if it's a road lane and if it's clear of obstacles (but allow offroad pushing)
-        if (newExtendedLane >= 0 && newExtendedLane < GameConfig.LANE_COUNT) {
+        // Allow lane changes when blocked to escape obstacles
+        if (newExtendedLane >= 0 && newExtendedLane < GameConfig.LANE_COUNT && !this.isBlocked) {
             if (!this.canChangeLane(newExtendedLane)) {
                 console.log(`Lane change blocked - lane ${newExtendedLane} not clear`);
                 return false;
@@ -129,6 +131,10 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         
         // Execute the lane change
         this.targetExtendedLane = newExtendedLane;
+
+        // Store starting position for smooth animation (current visual position or logical position)
+        this.laneChangeStartY = this.isChangingLanes ? this.y : GameConfig.EXTENDED_LANE_POSITIONS[this.extendedLane + 1];
+
         this.isChangingLanes = true;
         this.laneChangeProgress = 0;
         
@@ -173,9 +179,10 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
 
             console.log('Full boost activated!');
 
-            // Play boost sound effect
+            // Play manual boost sound effects
             if (this.scene.audioManager) {
-                this.scene.audioManager.playSound('boost');
+                this.scene.audioManager.playSound('manualboost');
+                this.scene.audioManager.playSound('boost'); // Whoosh sound
             }
         } else {
             console.log('Boost not available - meter:', this.boostMeter, 'cooldown:', this.boostCooldown, 'blocked:', this.isBlocked);
@@ -276,9 +283,10 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
 
             console.log('Ramp boost activated for 1.5s!');
 
-            // Play ramp sound effect
+            // Play ramp sound effects
             if (this.scene.audioManager) {
                 this.scene.audioManager.playSound('ramp');
+                this.scene.audioManager.playSound('boost'); // Whoosh sound
             }
         }
     }
@@ -311,6 +319,7 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         this.isBlocked = false;
         this.currentSpeed = this.baseSpeed;
         this.lastObstacleHit = null;
+        this.blockingObstacle = null;
         
         console.log('Player cleared obstacle - MOVING');
     }
@@ -375,8 +384,8 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
                 
                 console.log(`Lane change complete to extended lane ${this.extendedLane}`);
             } else {
-                // Animate between positions
-                const startY = GameConfig.EXTENDED_LANE_POSITIONS[this.extendedLane + 1];
+                // Animate between positions using stored start position
+                const startY = this.laneChangeStartY;
                 const endY = GameConfig.EXTENDED_LANE_POSITIONS[this.targetExtendedLane + 1];
                 this.y = Phaser.Math.Linear(startY, endY, progress);
             }
@@ -571,8 +580,14 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
 
     activateBrake() {
         // Apply strategic brake for tactical positioning
-        this.brakeTime = this.brakeDuration; // 1.5 seconds
+        this.brakeTime = this.brakeDuration; // 0.75 seconds
         this.showBrakeSmokeEffect();
+
+        // Play brake sound effect
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('brake');
+        }
+
         console.log('Player activated brake - slowing for tactical positioning');
     }
 
@@ -582,11 +597,15 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
 
     // Get current bounding box for precise collision detection
     getBoundingBox() {
+        // Slightly larger collision box when braking to prevent pass-through
+        const widthMultiplier = this.isBraking() ? 1.2 : 1.0;
+        const heightMultiplier = this.isBraking() ? 1.2 : 1.0;
+
         return {
-            left: this.x - this.collisionWidth / 2,
-            right: this.x + this.collisionWidth / 2,
-            top: this.y - this.collisionHeight / 2,
-            bottom: this.y + this.collisionHeight / 2
+            left: this.x - (this.collisionWidth * widthMultiplier) / 2,
+            right: this.x + (this.collisionWidth * widthMultiplier) / 2,
+            top: this.y - (this.collisionHeight * heightMultiplier) / 2,
+            bottom: this.y + (this.collisionHeight * heightMultiplier) / 2
         };
     }
 
@@ -638,12 +657,18 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         const boostMultiplier = wasBraking ? 1.8 : 1.4; // Moderate bonus (180% vs 140%) when braking
         const boostDuration = wasBraking ? 1400 : 1500; // Reduced by 30% (1.4s vs 1.5s) when braking
 
+
         // Get speed boost from being hit from behind
         const oldSpeed = this.currentSpeed;
         this.hasCollisionBoost = true;
         this.currentSpeed = this.baseSpeed * boostMultiplier;
 
         console.log(`COLLISION BOOST: ${wasBraking ? 'STRATEGIC BRAKE BONUS! ' : ''}${boostMultiplier * 100}% speed for ${boostDuration/1000}s (${oldSpeed} → ${this.currentSpeed})`);
+
+        // Play boost whoosh sound
+        if (this.scene.audioManager) {
+            this.scene.audioManager.playSound('boost');
+        }
 
         this.scene.time.delayedCall(boostDuration, () => {
             this.hasCollisionBoost = false;

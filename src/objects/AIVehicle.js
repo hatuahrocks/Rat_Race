@@ -666,11 +666,15 @@ class AIVehicle extends Phaser.GameObjects.Container {
 
     // Get current bounding box for precise collision detection
     getBoundingBox() {
+        // Slightly larger collision box when braking to prevent pass-through
+        const widthMultiplier = this.isBraking() ? 1.2 : 1.0;
+        const heightMultiplier = this.isBraking() ? 1.2 : 1.0;
+
         return {
-            left: this.x - this.collisionWidth / 2,
-            right: this.x + this.collisionWidth / 2,
-            top: this.y - this.collisionHeight / 2,
-            bottom: this.y + this.collisionHeight / 2
+            left: this.x - (this.collisionWidth * widthMultiplier) / 2,
+            right: this.x + (this.collisionWidth * widthMultiplier) / 2,
+            top: this.y - (this.collisionHeight * heightMultiplier) / 2,
+            bottom: this.y + (this.collisionHeight * heightMultiplier) / 2
         };
     }
 
@@ -721,6 +725,7 @@ class AIVehicle extends Phaser.GameObjects.Container {
         const wasBraking = this.isBraking();
         const boostMultiplier = wasBraking ? 1.8 : 1.4; // Moderate bonus (180% vs 140%) when braking
         const boostDuration = wasBraking ? 1400 : 1500; // Reduced by 30% (1.4s vs 1.5s) when braking
+
 
         // Get speed boost from being hit from behind
         if (this.isOffroad()) {

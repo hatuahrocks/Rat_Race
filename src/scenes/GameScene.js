@@ -242,11 +242,16 @@ class GameScene extends Phaser.Scene {
             this.collisionCooldowns = {};
         }
 
-        // Check cooldown (150ms between same pair collisions - very aggressive for debugging)
-        if (!this.collisionCooldowns[collisionKey] || currentTime - this.collisionCooldowns[collisionKey] > 150) {
-            // Debug collision info
-            const v1Braking = vehicle1.isBraking && vehicle1.isBraking();
-            const v2Braking = vehicle2.isBraking && vehicle2.isBraking();
+        // Check if either vehicle is braking for reduced cooldown
+        const v1Braking = vehicle1.isBraking && vehicle1.isBraking();
+        const v2Braking = vehicle2.isBraking && vehicle2.isBraking();
+        const anyBraking = v1Braking || v2Braking;
+
+        // Reduced cooldown for braking scenarios to prevent pass-through
+        const cooldownTime = anyBraking ? 50 : 150; // 50ms when braking, 150ms normal
+
+        if (!this.collisionCooldowns[collisionKey] || currentTime - this.collisionCooldowns[collisionKey] > cooldownTime) {
+            // Debug collision info (braking already calculated above)
             const distance = Phaser.Math.Distance.Between(vehicle1.x, vehicle1.y, vehicle2.x, vehicle2.y);
             const vel1 = vehicle1.getVelocity();
             const vel2 = vehicle2.getVelocity();
@@ -294,9 +299,10 @@ class GameScene extends Phaser.Scene {
                 console.log('Boosted', frontVehicle.constructor.name);
             }
 
-            // Play bump sound effect for rear-end collision (only if player is involved)
+            // Play bump sound effects for rear-end collision (only if player is involved)
             if (this.audioManager && (vehicle1 === this.player || vehicle2 === this.player)) {
                 this.audioManager.playSoundWithCooldown('bump', 800); // 800ms cooldown
+                this.audioManager.playSound('bump2'); // Snarky "HaHa" sound
             }
         } else if (xDistance < 40 && yDistance >= 20) { // Improved side collision detection
             // Side collision - lane pushing
@@ -599,6 +605,11 @@ class GameScene extends Phaser.Scene {
             vehicle.strawberryBoostTime = 2000; // 2 seconds of 40% speed boost
 
             console.log(`Player collected strawberry! Boost meter: ${vehicle.boostMeter.toFixed(1)}s, Strawberry boost for 2s`);
+
+            // Play boost whoosh sound for speed boost
+            if (this.audioManager) {
+                this.audioManager.playSound('boost');
+            }
 
             // If already boosting, extend the boost
             if (vehicle.isBoosting) {
