@@ -1,5 +1,5 @@
 const GameConfig = {
-    VERSION: '1.0.3', // Increment this for each update
+    VERSION: '1.0.4', // Increment this for each update
     LANE_COUNT: 4,
     LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
     OFFROAD_HIGH_Y: 184, // Above top lane

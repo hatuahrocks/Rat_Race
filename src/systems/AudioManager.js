@@ -46,9 +46,13 @@ class AudioManager {
     }
     
     playSound(key, volume = null) {
+        console.log(`AudioManager: Attempting to play sound "${key}"`);
         if (this.sounds[key]) {
             const vol = volume || this.sfxVolume;
             this.sounds[key].play({ volume: vol });
+            console.log(`AudioManager: Playing "${key}" at volume ${vol}`);
+        } else {
+            console.warn(`AudioManager: Sound "${key}" not found!`);
         }
     }
 
