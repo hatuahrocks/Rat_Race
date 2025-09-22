@@ -54,7 +54,7 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         // Brake tracking
         this.brakeTime = 0;
         this.brakeMultiplier = 0.4; // 60% slowdown when braking
-        this.brakeDuration = 1500; // 1.5 seconds
+        this.brakeDuration = 750; // 0.75 seconds (halved from 1.5s)
 
         // Collision bounding box (more precise than distance-based detection)
         this.collisionWidth = 45; // Vehicle width for collision
@@ -185,6 +185,7 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
     stopBoost() {
         this.isBoosting = false;
         this.hideBoostEffect();
+        // Don't reset cooldown here - let the meter refill naturally
     }
 
     showBoostEffect() {
@@ -415,12 +416,12 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
             if (this.boostMeter < GameConfig.BOOST_MAX_SECONDS) {
                 this.boostMeter += GameConfig.BOOST_REGEN_PER_SEC * dt;
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);
+            }
 
-                // When meter reaches full, remove cooldown
-                if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && this.boostCooldown) {
-                    this.boostCooldown = false;
-                    console.log('Boost recharged and ready!');
-                }
+            // Clear cooldown when meter is full (check outside regen block to handle interrupted boosts)
+            if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && this.boostCooldown) {
+                this.boostCooldown = false;
+                console.log('Boost recharged and ready!');
             }
         }
 
@@ -635,7 +636,7 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         // Check if player was braking for strategic boost bonus
         const wasBraking = this.isBraking();
         const boostMultiplier = wasBraking ? 1.8 : 1.4; // Moderate bonus (180% vs 140%) when braking
-        const boostDuration = wasBraking ? 2000 : 1500; // Slight duration bonus (2s vs 1.5s) when braking
+        const boostDuration = wasBraking ? 1400 : 1500; // Reduced by 30% (1.4s vs 1.5s) when braking
 
         // Get speed boost from being hit from behind
         const oldSpeed = this.currentSpeed;

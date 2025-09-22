@@ -55,7 +55,7 @@ class AIVehicle extends Phaser.GameObjects.Container {
         // Brake tracking
         this.brakeTime = 0;
         this.brakeMultiplier = 0.4; // 60% slowdown when braking
-        this.brakeDuration = 1500; // 1.5 seconds
+        this.brakeDuration = 750; // 0.75 seconds (halved from 1.5s)
 
         // Collision bounding box (more precise than distance-based detection)
         this.collisionWidth = 45; // Vehicle width for collision
@@ -720,7 +720,7 @@ class AIVehicle extends Phaser.GameObjects.Container {
         // Check if AI was braking for strategic boost bonus
         const wasBraking = this.isBraking();
         const boostMultiplier = wasBraking ? 1.8 : 1.4; // Moderate bonus (180% vs 140%) when braking
-        const boostDuration = wasBraking ? 2000 : 1500; // Slight duration bonus (2s vs 1.5s) when braking
+        const boostDuration = wasBraking ? 1400 : 1500; // Reduced by 30% (1.4s vs 1.5s) when braking
 
         // Get speed boost from being hit from behind
         if (this.isOffroad()) {
