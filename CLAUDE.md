@@ -110,15 +110,24 @@ BOOST_SPEED_MULTIPLIER: 1.8 // Boost multiplier
 
 ## Version Management
 **IMPORTANT**: Always increment the version number when making changes:
-1. Edit `src/config/config.js`
-2. Update `GameConfig.VERSION` (e.g., from '1.0.1' to '1.0.2')
-3. This displays in the bottom-right corner of the title screen
-4. Helps verify GitHub Pages has updated with latest changes
 
-Version format: `MAJOR.MINOR.PATCH`
+### Two Places to Update (MUST update both):
+1. **`src/config/config.js`**: Update `GameConfig.VERSION`
+2. **`index.html`**: Update `gameVersion` constant (line 52)
+
+### Why Two Places?
+- `GameConfig.VERSION` displays version on title screen
+- `gameVersion` in index.html forces cache refresh (adds ?v=X.X.X to all scripts)
+- Both must match to ensure proper cache busting
+
+### Version Format
+`MAJOR.MINOR.PATCH`
 - Patch: Bug fixes (1.0.1 → 1.0.2)
 - Minor: New features (1.0.2 → 1.1.0)
 - Major: Breaking changes (1.1.0 → 2.0.0)
+
+### Cache Busting
+The index.html file appends `?v=X.X.X` to all script URLs, forcing browsers and home screen apps to reload the latest version instead of using cached files. This ensures iOS home screen apps always get the latest code.
 
 ## Testing Commands
 ```bash
