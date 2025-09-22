@@ -15,6 +15,7 @@ class AIVehicle extends Phaser.GameObjects.Container {
         this.boostTimer = 0;
         this.nextLaneChange = Phaser.Math.Between(1000, GameConfig.AI.LANE_CHANGE_FREQ);
         this.nextBoost = Phaser.Math.Between(2000, GameConfig.AI.BOOST_FREQ);
+        this.lastLaneChangeTime = 0; // Track last lane change for cooldown
         
         // Physics
         this.baseSpeed = GameConfig.BASE_FORWARD_SPEED * 
@@ -23,9 +24,10 @@ class AIVehicle extends Phaser.GameObjects.Container {
         this.verticalVelocity = 0;
         this.isAirborne = false;
         
-        // Boost
+        // Boost - matching player's all-or-nothing mechanic
         this.boostMeter = GameConfig.BOOST_MAX_SECONDS;
         this.isBoosting = false;
+        this.boostCooldown = false; // Prevents boost use until meter is full
         
         // Position tracking
         this.distanceTraveled = 0;
@@ -135,12 +137,9 @@ class AIVehicle extends Phaser.GameObjects.Container {
             }
         }
 
-        // Boost decision
-        if (this.boostMeter > 1 && Math.random() < (this.difficulty * 0.1)) {
-            this.startBoost();
-            this.scene.time.delayedCall(Phaser.Math.Between(500, 1500), () => {
-                this.stopBoost();
-            });
+        // Boost decision - AI uses full boost like player
+        if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && !this.boostCooldown && Math.random() < (this.difficulty * 0.1)) {
+            this.useFullBoost();
         }
     }
     
@@ -244,6 +243,12 @@ class AIVehicle extends Phaser.GameObjects.Container {
 
     changeLane(direction) {
         if (this.isAirborne || this.isChangingLanes) return false;
+
+        // Add 500ms cooldown between lane changes
+        const now = Date.now();
+        if (now - this.lastLaneChangeTime < 500) {
+            return false; // Still in cooldown period
+        }
         
         const newExtendedLane = this.extendedLane + direction;
         
@@ -259,21 +264,20 @@ class AIVehicle extends Phaser.GameObjects.Container {
         this.targetExtendedLane = newExtendedLane;
         this.isChangingLanes = true;
         this.laneChangeProgress = 0;
-        
+        this.lastLaneChangeTime = Date.now(); // Record time of successful lane change
+
         console.log(`AIVehicle changing to extended lane ${newExtendedLane}`);
         return true;
     }
     
-    startBoost() {
-        if (this.boostMeter > 0 && !this.isBlocked) {
+    useFullBoost() {
+        // Only allow boost if meter is full and not on cooldown - same as player
+        if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && !this.boostCooldown && !this.isBlocked) {
             this.isBoosting = true;
+            this.boostCooldown = true; // Prevent using again until full
             this.showBoostEffect();
+            console.log(`AI ${this.character.name} using full boost!`);
         }
-    }
-    
-    stopBoost() {
-        this.isBoosting = false;
-        this.hideBoostEffect();
     }
     
     showBoostEffect() {
@@ -344,7 +348,8 @@ class AIVehicle extends Phaser.GameObjects.Container {
 
         // Stop boost if currently boosting
         if (this.isBoosting) {
-            this.stopBoost();
+            this.isBoosting = false;
+            this.hideBoostEffect();
         }
     }
     
@@ -451,17 +456,26 @@ class AIVehicle extends Phaser.GameObjects.Container {
             }
         }
         
-        // Handle boost meter drain and regeneration
+        // Handle boost meter drain and regeneration - matching player mechanics
         if (this.isBoosting && this.boostMeter > 0 && !this.isBlocked) {
             this.boostMeter -= dt;
             if (this.boostMeter <= 0) {
                 this.boostMeter = 0;
-                this.stopBoost();
+                this.isBoosting = false;
+                this.hideBoostEffect();
+                console.log(`AI ${this.character.name} boost depleted`);
             }
         } else {
+            // Regenerate boost
             if (this.boostMeter < GameConfig.BOOST_MAX_SECONDS) {
                 this.boostMeter += GameConfig.BOOST_REGEN_PER_SEC * dt * 0.8; // AI regenerates slower
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);
+
+                // When meter reaches full, remove cooldown
+                if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && this.boostCooldown) {
+                    this.boostCooldown = false;
+                    console.log(`AI ${this.character.name} boost recharged and ready!`);
+                }
             }
         }
 

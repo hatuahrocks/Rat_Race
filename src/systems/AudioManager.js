@@ -11,23 +11,26 @@ class AudioManager {
     }
     
     preload() {
-        // Sound Effects
-        this.scene.load.audio('countdown', 'assets/audio/countdown.mp3');
+        // Set up error handler for missing audio
+        this.scene.load.on('loaderror', (file) => {
+            console.log(`Audio file not found: ${file.src} - continuing without audio`);
+        });
+
+        // Load existing audio files
         this.scene.load.audio('bump', 'assets/audio/bump.mp3');
         this.scene.load.audio('ramp', 'assets/audio/ramp.mp3');
         this.scene.load.audio('push', 'assets/audio/push.mp3');
-        this.scene.load.audio('boost', 'assets/audio/boost.mp3');
         this.scene.load.audio('powerup', 'assets/audio/powerup.mp3');
-
-        // Engine Sounds
-        this.scene.load.audio('engine_idle', 'assets/audio/engine_idle.mp3');
-        this.scene.load.audio('engine_mid', 'assets/audio/engine_mid.mp3');
-        this.scene.load.audio('engine_high', 'assets/audio/engine_high.mp3');
-        this.scene.load.audio('engine_drag', 'assets/audio/engine_drag.mp3');
-
-        // Music (Optional)
         this.scene.load.audio('music_menu', 'assets/audio/music_menu.mp3');
-        this.scene.load.audio('music_race', 'assets/audio/music_race.mp3');
+
+        // These files don't exist yet - commented out to prevent 404 errors:
+        // this.scene.load.audio('countdown', 'assets/audio/countdown.mp3');
+        // this.scene.load.audio('boost', 'assets/audio/boost.mp3');
+        // this.scene.load.audio('engine_idle', 'assets/audio/engine_idle.mp3');
+        // this.scene.load.audio('engine_mid', 'assets/audio/engine_mid.mp3');
+        // this.scene.load.audio('engine_high', 'assets/audio/engine_high.mp3');
+        // this.scene.load.audio('engine_drag', 'assets/audio/engine_drag.mp3');
+        // this.scene.load.audio('music_race', 'assets/audio/music_race.mp3');
     }
     
     create() {

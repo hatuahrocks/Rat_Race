@@ -202,12 +202,17 @@ class RaceEndScene extends Phaser.Scene {
         
         // Play Again button
         const playAgainBtn = this.createButton(width / 2 - 120, height - 100, 'PLAY AGAIN', () => {
+            console.log('Play Again clicked');
             this.scene.start('GameScene');
             this.scene.launch('UIScene');
         });
-        
+
         // Menu button
         const menuBtn = this.createButton(width / 2 + 120, height - 100, 'MAIN MENU', () => {
+            console.log('Main Menu clicked from RaceEndScene');
+            // Stop UI scene if it's running
+            this.scene.stop('UIScene');
+            // Start fresh main menu
             this.scene.start('MainMenuScene');
         });
     }

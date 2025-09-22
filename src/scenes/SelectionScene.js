@@ -5,7 +5,35 @@ class SelectionScene extends Phaser.Scene {
         this.characterCards = [];
     }
 
+    init() {
+        window.debugLogger.log('SCENE', 'SelectionScene init called');
+
+        // Reset properties
+        this.selectedIndex = 0;
+        this.characterCards = [];
+
+        // Reset the scene completely
+        this.input.removeAllListeners();
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+        this.input.enabled = true;
+
+        window.debugLogger.log('SCENE', 'SelectionScene init complete', {
+            inputEnabled: this.input.enabled
+        });
+    }
+
+    shutdown() {
+        // Clean up when leaving the scene
+        this.input.removeAllListeners();
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+        console.log('SelectionScene shutdown');
+    }
+
     create() {
+        window.debugLogger.log('SCENE', 'SelectionScene create called');
+
         // Get shared audio manager from registry
         this.audioManager = this.registry.get('audioManager');
 
@@ -320,23 +348,36 @@ class SelectionScene extends Phaser.Scene {
     selectCharacter(index) {
         // Update selection
         this.selectedIndex = index;
-        
+
         // Update visual feedback
         this.characterCards.forEach((card, i) => {
+            if (!card || !card.highlight) {
+                window.debugLogger.log('ERROR', 'Invalid card in selectCharacter', { index: i });
+                return;
+            }
+
             if (i === index) {
                 card.highlight.setVisible(true);
-                card.getAt(1).setFillStyle(0xFFFACD); // Highlight background
+                const bg = card.getAt(1);
+                if (bg && bg.setFillStyle) {
+                    bg.setFillStyle(0xFFFACD); // Highlight background
+                }
             } else {
                 card.highlight.setVisible(false);
-                card.getAt(1).setFillStyle(0xF0F0F0); // Normal grey background
+                const bg = card.getAt(1);
+                if (bg && bg.setFillStyle) {
+                    bg.setFillStyle(0xF0F0F0); // Normal grey background
+                }
             }
         });
-        
+
         // Store selected character
         this.registry.set('selectedCharacter', Characters[index]);
-        
+
         // Update start button
-        this.updateStartButton();
+        if (this.updateStartButton) {
+            this.updateStartButton();
+        }
     }
     
     createStartButton(x, y) {
@@ -357,6 +398,7 @@ class SelectionScene extends Phaser.Scene {
         button.add([bg, text]);
         
         bg.on('pointerdown', () => {
+            console.log('Start button clicked in SelectionScene');
             this.scene.start('CarColorSelectionScene');
         });
         
@@ -388,7 +430,15 @@ class SelectionScene extends Phaser.Scene {
         button.add([bg, arrow]);
         
         bg.on('pointerdown', () => {
-            this.scene.start('MainMenuScene');
+            window.debugLogger.log('INPUT', 'Back button clicked in SelectionScene');
+            window.debugLogger.log('SCENE', 'Attempting to start MainMenuScene from SelectionScene');
+
+            try {
+                this.scene.start('MainMenuScene');
+                window.debugLogger.log('SCENE', 'MainMenuScene start command sent from SelectionScene');
+            } catch (error) {
+                window.debugLogger.log('ERROR', 'Failed to start MainMenuScene', error.message);
+            }
         });
         
         bg.on('pointerover', () => {

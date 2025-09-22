@@ -59,8 +59,9 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script>
         // Cache busting: append version to all script URLs
-        const gameVersion = '1.2.0';
+        const gameVersion = '1.4.0';
         const scripts = [
+            'src/systems/DebugLogger.js',
             'src/config/config.js',
             'src/data/characters.js',
             'src/systems/InputManager.js',
@@ -84,12 +85,31 @@
             'src/main.js'
         ];
 
-        // Load each script with cache busting parameter
-        scripts.forEach(src => {
+        // Load scripts sequentially to ensure proper order
+        function loadScript(index) {
+            if (index >= scripts.length) {
+                console.log('All scripts loaded successfully');
+                return;
+            }
+
             const script = document.createElement('script');
-            script.src = `${src}?v=${gameVersion}`;
+            script.src = `${scripts[index]}?v=${gameVersion}`;
+
+            script.onload = () => {
+                console.log(`Loaded: ${scripts[index]}`);
+                loadScript(index + 1);
+            };
+
+            script.onerror = () => {
+                console.error(`Failed to load: ${scripts[index]}`);
+                loadScript(index + 1); // Continue loading other scripts
+            };
+
             document.body.appendChild(script);
-        });
+        }
+
+        // Start loading scripts sequentially
+        loadScript(0);
     </script>
 </body>
 </html>

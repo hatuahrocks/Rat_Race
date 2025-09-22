@@ -168,9 +168,14 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         }
     }
     
+    stopBoost() {
+        this.isBoosting = false;
+        this.hideBoostEffect();
+    }
+
     showBoostEffect() {
         this.boostEffect.removeAll(true);
-        
+
         // Create boost particles
         for (let i = 0; i < 3; i++) {
             const particle = this.scene.add.circle(
@@ -361,10 +366,12 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
                 this.boostMeter = 0;
                 this.isBoosting = false;
                 this.hideBoostEffect();
-                console.log('Boost depleted');
+                // Ensure cooldown remains active after boost depletes
+                this.boostCooldown = true;
+                console.log('Boost depleted - cooldown active');
             }
-        } else {
-            // Regenerate boost
+        } else if (!this.isBoosting) {
+            // Only regenerate boost when not boosting
             if (this.boostMeter < GameConfig.BOOST_MAX_SECONDS) {
                 this.boostMeter += GameConfig.BOOST_REGEN_PER_SEC * dt;
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);

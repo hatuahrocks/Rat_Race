@@ -15,6 +15,28 @@ class CarColorSelectionScene extends Phaser.Scene {
         ];
     }
 
+    init() {
+        // Reset properties when scene starts
+        this.selectedIndex = 0;
+        this.colorCards = [];
+
+        // Reset scene state
+        this.input.removeAllListeners();
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+        this.input.enabled = true;
+
+        console.log('CarColorSelectionScene initialized');
+    }
+
+    shutdown() {
+        // Clean up when leaving the scene
+        this.input.removeAllListeners();
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+        console.log('CarColorSelectionScene shutdown');
+    }
+
     create() {
         // Get shared audio manager from registry
         this.audioManager = this.registry.get('audioManager');
@@ -194,23 +216,36 @@ class CarColorSelectionScene extends Phaser.Scene {
     selectColor(index) {
         // Update selection
         this.selectedIndex = index;
-        
+
         // Update visual feedback
         this.colorCards.forEach((card, i) => {
+            if (!card || !card.highlight) {
+                console.error('Invalid color card in selectColor', { index: i });
+                return;
+            }
+
             if (i === index) {
                 card.highlight.setVisible(true);
-                card.getAt(1).setFillStyle(0xFFFACD); // Highlight background
+                const bg = card.getAt(1);
+                if (bg && bg.setFillStyle) {
+                    bg.setFillStyle(0xFFFACD); // Highlight background
+                }
             } else {
                 card.highlight.setVisible(false);
-                card.getAt(1).setFillStyle(0xFFFFFF); // Normal background
+                const bg = card.getAt(1);
+                if (bg && bg.setFillStyle) {
+                    bg.setFillStyle(0xFFFFFF); // Normal background
+                }
             }
         });
-        
+
         // Store selected car color
         this.registry.set('selectedCarColor', this.carColors[index]);
-        
+
         // Update start button
-        this.updateStartButton();
+        if (this.updateStartButton) {
+            this.updateStartButton();
+        }
     }
     
     createStartButton(x, y) {
@@ -231,6 +266,7 @@ class CarColorSelectionScene extends Phaser.Scene {
         button.add([bg, text]);
         
         bg.on('pointerdown', () => {
+            console.log('Start Race clicked in CarColorSelectionScene');
             this.scene.start('GameScene');
             this.scene.launch('UIScene');
         });
@@ -263,6 +299,7 @@ class CarColorSelectionScene extends Phaser.Scene {
         button.add([bg, arrow]);
         
         bg.on('pointerdown', () => {
+            console.log('Back button clicked in CarColorSelectionScene');
             this.scene.start('SelectionScene');
         });
         

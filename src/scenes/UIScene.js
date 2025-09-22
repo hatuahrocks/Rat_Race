@@ -105,8 +105,8 @@ class UIScene extends Phaser.Scene {
         const createButton = (x, y) => {
             const button = this.add.container(x, y);
 
-            // Button background
-            const bg = this.add.circle(0, 0, buttonSize / 2, 0xFF0000);
+            // Button background - start green since boost is full at race start
+            const bg = this.add.circle(0, 0, buttonSize / 2, 0x00FF00);
             bg.setStrokeStyle(4, 0x000000);
             bg.setInteractive({ useHandCursor: true });
             bg.setAlpha(0.7);
@@ -146,12 +146,19 @@ class UIScene extends Phaser.Scene {
             width - margin - (buttonSize / 2),
             height - 150
         );
+        this.boostButtonRight.pulsing = false;
 
         // Create LEFT boost button (for left-handed boost while right-hand steers)
         this.boostButtonLeft = createButton(
             margin + (buttonSize / 2),
             height - 150
         );
+        this.boostButtonLeft.pulsing = false;
+
+        // Start pulsing immediately since boost is full at race start
+        this.time.delayedCall(100, () => {
+            this.updateBoostButtons(true);
+        });
     }
     
     createLaneIndicators() {
@@ -218,9 +225,45 @@ class UIScene extends Phaser.Scene {
 
         if (this.boostButtonLeft && this.boostButtonLeft.list[0]) {
             this.boostButtonLeft.list[0].setFillStyle(color);
+
+            // Add pulsing effect when available
+            if (isAvailable && !this.boostButtonLeft.pulsing) {
+                this.boostButtonLeft.pulsing = true;
+                this.tweens.add({
+                    targets: this.boostButtonLeft.list[0],
+                    alpha: { from: 0.7, to: 1 },
+                    scale: { from: 1, to: 1.05 },
+                    duration: 500,
+                    yoyo: true,
+                    repeat: -1
+                });
+            } else if (!isAvailable && this.boostButtonLeft.pulsing) {
+                this.boostButtonLeft.pulsing = false;
+                this.tweens.killTweensOf(this.boostButtonLeft.list[0]);
+                this.boostButtonLeft.list[0].setAlpha(0.7);
+                this.boostButtonLeft.list[0].setScale(1);
+            }
         }
         if (this.boostButtonRight && this.boostButtonRight.list[0]) {
             this.boostButtonRight.list[0].setFillStyle(color);
+
+            // Add pulsing effect when available
+            if (isAvailable && !this.boostButtonRight.pulsing) {
+                this.boostButtonRight.pulsing = true;
+                this.tweens.add({
+                    targets: this.boostButtonRight.list[0],
+                    alpha: { from: 0.7, to: 1 },
+                    scale: { from: 1, to: 1.05 },
+                    duration: 500,
+                    yoyo: true,
+                    repeat: -1
+                });
+            } else if (!isAvailable && this.boostButtonRight.pulsing) {
+                this.boostButtonRight.pulsing = false;
+                this.tweens.killTweensOf(this.boostButtonRight.list[0]);
+                this.boostButtonRight.list[0].setAlpha(0.7);
+                this.boostButtonRight.list[0].setScale(1);
+            }
         }
     }
     

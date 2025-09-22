@@ -3,7 +3,35 @@ class MainMenuScene extends Phaser.Scene {
         super({ key: 'MainMenuScene' });
     }
 
+    init() {
+        window.debugLogger.log('SCENE', 'MainMenuScene init called');
+
+        // Reset the scene completely
+        this.input.removeAllListeners();
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+        this.input.enabled = true;
+
+        window.debugLogger.log('SCENE', 'MainMenuScene init complete', {
+            inputEnabled: this.input.enabled,
+            sceneKey: this.scene.key
+        });
+    }
+
+    shutdown() {
+        window.debugLogger.log('SCENE', 'MainMenuScene shutdown called');
+
+        // Clean up when leaving the scene
+        this.input.removeAllListeners();
+        this.tweens.killAll();
+        this.time.removeAllEvents();
+
+        window.debugLogger.log('SCENE', 'MainMenuScene shutdown complete');
+    }
+
     create() {
+        window.debugLogger.log('SCENE', 'MainMenuScene create called');
+
         // Get shared audio manager from registry
         this.audioManager = this.registry.get('audioManager');
 
@@ -53,7 +81,15 @@ class MainMenuScene extends Phaser.Scene {
         
         // Play button
         const playButton = this.createButton(width / 2, height / 2 + 50, 'PLAY', () => {
-            this.scene.start('SelectionScene');
+            window.debugLogger.log('INPUT', 'Play button callback triggered');
+            window.debugLogger.log('SCENE', 'Attempting to start SelectionScene');
+
+            try {
+                this.scene.start('SelectionScene');
+                window.debugLogger.log('SCENE', 'SelectionScene start command sent');
+            } catch (error) {
+                window.debugLogger.log('ERROR', 'Failed to start SelectionScene', error.message);
+            }
         });
         
         // Settings button (placeholder)
@@ -84,16 +120,20 @@ class MainMenuScene extends Phaser.Scene {
         
         // Add sample rat animation
         this.createSampleRat();
+
+        window.debugLogger.log('SCENE', 'MainMenuScene create complete');
     }
     
     createButton(x, y, text, callback) {
         const button = this.add.container(x, y);
-        
+
         // Button background
         const bg = this.add.rectangle(0, 0, 250, 60, 0x4444FF);
-        bg.setInteractive({ useHandCursor: true });
         bg.setStrokeStyle(4, 0x000000);
-        
+
+        // Make interactive with new approach
+        bg.setInteractive({ useHandCursor: true });
+
         // Button text
         const label = this.add.text(0, 0, text, {
             fontSize: '32px',
@@ -103,44 +143,39 @@ class MainMenuScene extends Phaser.Scene {
             strokeThickness: 2
         });
         label.setOrigin(0.5);
-        
+
         button.add([bg, label]);
-        
-        // Hover effects
+
+        // Remove all existing listeners first
+        bg.removeAllListeners();
+
+        // Simple hover effects without tweens
         bg.on('pointerover', () => {
+            window.debugLogger.log('INPUT', `Button "${text}" hover`);
             bg.setFillStyle(0x6666FF);
-            this.tweens.add({
-                targets: button,
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 100
-            });
+            button.setScale(1.05);
         });
-        
+
         bg.on('pointerout', () => {
             bg.setFillStyle(0x4444FF);
-            this.tweens.add({
-                targets: button,
-                scaleX: 1,
-                scaleY: 1,
-                duration: 100
-            });
+            button.setScale(1);
         });
-        
+
         bg.on('pointerdown', () => {
-            // Execute callback immediately
-            callback();
-            
-            // Add visual feedback animation
-            this.tweens.add({
-                targets: button,
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 50,
-                yoyo: true
+            window.debugLogger.log('INPUT', `Button "${text}" pointerdown event`, {
+                x: x,
+                y: y,
+                interactive: bg.input.enabled
             });
+
+            // Disable further clicks
+            bg.disableInteractive();
+            window.debugLogger.log('INPUT', `Button "${text}" disabled`);
+
+            // Call the callback
+            callback();
         });
-        
+
         return button;
     }
     
