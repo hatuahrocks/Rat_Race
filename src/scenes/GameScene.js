@@ -10,6 +10,10 @@ class GameScene extends Phaser.Scene {
         // Stop menu music when entering race
         if (this.audioManager) {
             this.audioManager.stopMusic();
+            // Resume audio context for iOS
+            if (this.sound.context && this.sound.context.state === 'suspended') {
+                this.sound.context.resume();
+            }
         }
 
         // Initialize systems
