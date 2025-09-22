@@ -68,6 +68,16 @@ class MainMenuScene extends Phaser.Scene {
             color: '#FFFFFF'
         });
         credits.setOrigin(0.5);
+
+        // Version number in bottom right
+        const version = this.add.text(width - 10, height - 10, `v${GameConfig.VERSION}`, {
+            fontSize: '14px',
+            fontFamily: 'Arial',
+            color: '#FFFFFF',
+            stroke: '#000000',
+            strokeThickness: 2
+        });
+        version.setOrigin(1, 1);
         
         // Initialize palette swap system for detailed rat
         this.paletteSwap = new PaletteSwap(this);
