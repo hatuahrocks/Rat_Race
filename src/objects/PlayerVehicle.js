@@ -121,31 +121,6 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         return true;
     }
 
-    changeLaneToTarget(targetLane) {
-        if (this.isAirborne || this.isChangingLanes) return false;
-
-        // Clamp target lane to valid range (-1 to 4)
-        targetLane = Phaser.Math.Clamp(targetLane, -1, 4);
-
-        // Don't change if already in target lane
-        if (targetLane === this.extendedLane) return false;
-
-        // Check if it's a road lane and if it's clear of obstacles (but allow offroad)
-        if (targetLane >= 0 && targetLane < GameConfig.LANE_COUNT) {
-            if (!this.canChangeLane(targetLane)) {
-                console.log(`Direct lane change blocked - lane ${targetLane} not clear`);
-                return false;
-            }
-        }
-
-        // Execute the lane change
-        this.targetExtendedLane = targetLane;
-        this.isChangingLanes = true;
-        this.laneChangeProgress = 0;
-
-        console.log(`PlayerVehicle finger tracing to extended lane ${targetLane}`);
-        return true;
-    }
     
     isOffroad() {
         return this.extendedLane === -1 || this.extendedLane === 4;

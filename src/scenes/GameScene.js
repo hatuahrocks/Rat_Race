@@ -312,13 +312,6 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        // Finger tracing lane target
-        this.events.on('laneChangeToTarget', (targetLane) => {
-            if (this.gameStarted && !this.gameEnded) {
-                this.player.changeLaneToTarget(targetLane);
-            }
-        });
-        
         // Boost events
         this.events.on('boostStart', () => {
             if (this.gameStarted && !this.gameEnded) {
@@ -460,7 +453,6 @@ class GameScene extends Phaser.Scene {
         this.obstacleSpawner.destroy();
         this.events.off('laneChangeUp');
         this.events.off('laneChangeDown');
-        this.events.off('laneChangeToTarget');
         this.events.off('boostStart');
         this.events.off('boostEnd');
         this.events.off('boostPartial');
