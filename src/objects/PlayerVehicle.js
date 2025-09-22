@@ -255,9 +255,9 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         this.blockingObstacle = obstacle;
         this.lastObstacleHit = obstacle;
 
-        // Play bump sound effect when hitting obstacle
+        // Play bump sound effect when hitting obstacle (with cooldown)
         if (this.scene.audioManager) {
-            this.scene.audioManager.playSound('bump');
+            this.scene.audioManager.playSoundWithCooldown('bump', 1000); // 1 second cooldown
         }
         
         // Stop boost if currently boosting

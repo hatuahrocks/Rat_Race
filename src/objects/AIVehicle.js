@@ -340,10 +340,7 @@ class AIVehicle extends Phaser.GameObjects.Container {
         this.isBlocked = true;
         this.currentSpeed = 0;
 
-        // Play bump sound effect when hitting obstacle
-        if (this.scene.audioManager) {
-            this.scene.audioManager.playSound('bump');
-        }
+        // Don't play bump sound for AI - only player should make noise
 
         // Stop boost if currently boosting
         if (this.isBoosting) {

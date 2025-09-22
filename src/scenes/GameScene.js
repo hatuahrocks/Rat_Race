@@ -173,9 +173,9 @@ class GameScene extends Phaser.Scene {
                 console.log('Boosted', frontVehicle.constructor.name);
             }
 
-            // Play bump sound effect for rear-end collision
-            if (this.audioManager) {
-                this.audioManager.playSound('bump');
+            // Play bump sound effect for rear-end collision (only if player is involved)
+            if (this.audioManager && (vehicle1 === this.player || vehicle2 === this.player)) {
+                this.audioManager.playSoundWithCooldown('bump', 800); // 800ms cooldown
             }
         } else if (xDistance < 40 && yDistance >= 20) { // Improved side collision detection
             // Side collision - lane pushing
