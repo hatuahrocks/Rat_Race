@@ -35,30 +35,16 @@ class GameScene extends Phaser.Scene {
         // Create start line
         this.createStartLine();
         
-        // Create player vehicle - start behind start line
+        // Get player's selected car color and character
+        const selectedCarColor = this.registry.get('selectedCarColor') || { color: 0x333333, accent: 0x444444 };
+
+        // Create player vehicle - start behind start line in lane 1
         this.player = new PlayerVehicle(this, 50, GameConfig.LANE_Y_POSITIONS[1], selectedCharacter);
-        
-        // Create AI opponents - one per lane (excluding player's lane)
+        console.log(`Player created in lane 1 at Y: ${GameConfig.LANE_Y_POSITIONS[1]}`);
+
+        // Create AI opponents - ensure unique lanes, colors, and characters
         this.aiVehicles = [];
-        const availableLanes = [0, 2, 3]; // Player is in lane 1, so use other lanes
-        const maxAI = Math.min(GameConfig.AI.COUNT, availableLanes.length); // Don't exceed available lanes
-        
-        for (let i = 0; i < maxAI; i++) {
-            const aiCharacter = Characters[Phaser.Math.Between(0, Characters.length - 1)];
-            const lane = availableLanes[i]; // Use each available lane once
-            
-            // Stagger X positions slightly to avoid perfect alignment
-            const staggerX = 50 + Phaser.Math.Between(-10, 10);
-            
-            const ai = new AIVehicle(
-                this, 
-                staggerX,
-                GameConfig.LANE_Y_POSITIONS[lane],
-                aiCharacter,
-                0.5 + (i * 0.2)
-            );
-            this.aiVehicles.push(ai);
-        }
+        this.createUniqueAIOpponents(selectedCharacter, selectedCarColor);
         
         // Game state
         this.gameStarted = false;
@@ -76,7 +62,71 @@ class GameScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, false, 0.1, 0.1);
         this.cameras.main.setFollowOffset(-200, 0);
     }
-    
+
+    createUniqueAIOpponents(playerCharacter, playerCarColor) {
+        // Available car colors from CarColorSelectionScene
+        const availableCarColors = [
+            { name: 'Classic Black', color: 0x333333, accent: 0x444444 },
+            { name: 'Racing Red', color: 0xCC0000, accent: 0xFF3333 },
+            { name: 'Electric Blue', color: 0x0066CC, accent: 0x3399FF },
+            { name: 'Forest Green', color: 0x228B22, accent: 0x32CD32 },
+            { name: 'Sunset Orange', color: 0xFF6600, accent: 0xFF9933 },
+            { name: 'Royal Purple', color: 0x663399, accent: 0x9966CC },
+            { name: 'Bright Yellow', color: 0xFFCC00, accent: 0xFFDD33 },
+            { name: 'Hot Pink', color: 0xFF1493, accent: 0xFF69B4 }
+        ];
+
+        // Remove player's car color from available colors
+        const aiCarColors = availableCarColors.filter(carColor =>
+            carColor.color !== playerCarColor.color
+        );
+
+        // Remove player's character from available characters
+        const aiCharacters = Characters.filter(character =>
+            character.name !== playerCharacter.name
+        );
+
+        // Available lanes (player is in lane 1, so use 0, 2, 3)
+        const availableLanes = [0, 2, 3];
+        const maxAI = Math.min(GameConfig.AI.COUNT, availableLanes.length, aiCarColors.length, aiCharacters.length);
+
+        console.log(`Creating ${maxAI} AI opponents with unique colors and characters`);
+
+        // Shuffle arrays to get random selection
+        const shuffledCarColors = this.shuffleArray([...aiCarColors]);
+        const shuffledCharacters = this.shuffleArray([...aiCharacters]);
+
+        for (let i = 0; i < maxAI; i++) {
+            const lane = availableLanes[i];
+            const aiCharacter = shuffledCharacters[i];
+            const aiCarColor = shuffledCarColors[i];
+
+            // Stagger X positions slightly to avoid perfect alignment
+            const staggerX = 50 + Phaser.Math.Between(-10, 10);
+
+            console.log(`AI ${i}: Lane ${lane} at Y: ${GameConfig.LANE_Y_POSITIONS[lane]}, Character: ${aiCharacter.name}, Color: ${aiCarColor.name}`);
+
+            const ai = new AIVehicle(
+                this,
+                staggerX,
+                GameConfig.LANE_Y_POSITIONS[lane],
+                aiCharacter,
+                0.5 + (i * 0.2),
+                aiCarColor // Pass the car color
+            );
+            this.aiVehicles.push(ai);
+        }
+    }
+
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
     createStartLine() {
         const startLineX = 100;
         const roadY = GameConfig.VIEWPORT.HEIGHT / 2;
@@ -117,35 +167,98 @@ class GameScene extends Phaser.Scene {
     
     checkVehicleCollisions() {
         const allVehicles = [this.player, ...this.aiVehicles];
-        
+
         for (let i = 0; i < allVehicles.length; i++) {
             for (let j = i + 1; j < allVehicles.length; j++) {
                 const vehicle1 = allVehicles[i];
                 const vehicle2 = allVehicles[j];
-                
-                const distance = Phaser.Math.Distance.Between(vehicle1.x, vehicle1.y, vehicle2.x, vehicle2.y);
-                const xDistance = Math.abs(vehicle1.x - vehicle2.x);
-                const yDistance = Math.abs(vehicle1.y - vehicle2.y);
-                
-                // Check for collision with better detection - increased ranges to match vehicle size
-                if (distance < 70 && xDistance < 60 && yDistance < 45) {
-                    // Create collision pair key to prevent duplicate collisions
-                    const collisionKey = `${Math.min(i,j)}-${Math.max(i,j)}`;
-                    const currentTime = this.time.now;
-                    
-                    // Initialize collision cooldowns if not exists
-                    if (!this.collisionCooldowns) {
-                        this.collisionCooldowns = {};
+
+                // Get current bounding boxes
+                const box1 = vehicle1.getBoundingBox();
+                const box2 = vehicle2.getBoundingBox();
+
+                // Check for current collision using precise bounding box intersection
+                if (this.boundingBoxIntersect(box1, box2)) {
+                    this.handleCollisionDetected(vehicle1, vehicle2, i, j, 'current');
+                    continue; // Skip other checks if current collision exists
+                }
+
+                // Check velocities to determine if we need high-speed collision detection
+                const vel1 = vehicle1.getVelocity();
+                const vel2 = vehicle2.getVelocity();
+                const speed1 = Math.sqrt(vel1.x * vel1.x + vel1.y * vel1.y);
+                const speed2 = Math.sqrt(vel2.x * vel2.x + vel2.y * vel2.y);
+                const isHighSpeed = speed1 > 15 || speed2 > 15; // Lowered threshold for better detection
+
+                // ALWAYS check swept collision for ANY moving vehicle (brute force approach)
+                const isMoving = speed1 > 1 || speed2 > 1; // Any movement at all
+                if (isMoving) {
+                    const sweptBox1 = vehicle1.getSweptBoundingBox();
+                    const sweptBox2 = vehicle2.getSweptBoundingBox();
+
+                    if (this.boundingBoxIntersect(sweptBox1, sweptBox2)) {
+                        const collisionType = isHighSpeed ? 'swept-highspeed' : 'swept-normal';
+                        this.handleCollisionDetected(vehicle1, vehicle2, i, j, collisionType);
+                        continue;
                     }
-                    
-                    // Check cooldown (500ms between same pair collisions)
-                    if (!this.collisionCooldowns[collisionKey] || currentTime - this.collisionCooldowns[collisionKey] > 500) {
-                        console.log('Vehicle collision detected!', distance, 'xDist:', xDistance, 'yDist:', yDistance, 'vehicles:', vehicle1.constructor.name, vehicle2.constructor.name);
-                        this.handleVehicleCollision(vehicle1, vehicle2);
-                        this.collisionCooldowns[collisionKey] = currentTime;
+                }
+
+                // Fallback: Standard predictive collision
+                const predictedBox1 = vehicle1.getPredictedBoundingBox(16.67); // Assume 60fps (16.67ms)
+                const predictedBox2 = vehicle2.getPredictedBoundingBox(16.67);
+
+                if (this.boundingBoxIntersect(predictedBox1, predictedBox2)) {
+                    this.handleCollisionDetected(vehicle1, vehicle2, i, j, 'predicted');
+                } else {
+                    // Debug near-misses for braking scenarios
+                    const v1Braking = vehicle1.isBraking && vehicle1.isBraking();
+                    const v2Braking = vehicle2.isBraking && vehicle2.isBraking();
+                    const distance = Phaser.Math.Distance.Between(vehicle1.x, vehicle1.y, vehicle2.x, vehicle2.y);
+
+                    if ((v1Braking || v2Braking) && distance < 80) {
+                        console.log(`NEAR MISS: ${vehicle1.constructor.name}(${v1Braking ? 'BRAKING' : 'normal'}, speed:${speed1.toFixed(1)}) vs ${vehicle2.constructor.name}(${v2Braking ? 'BRAKING' : 'normal'}, speed:${speed2.toFixed(1)}) - Distance:${distance.toFixed(1)}`);
                     }
                 }
             }
+        }
+    }
+
+    // Check if two bounding boxes intersect
+    boundingBoxIntersect(box1, box2) {
+        return !(box1.right < box2.left ||
+                 box1.left > box2.right ||
+                 box1.bottom < box2.top ||
+                 box1.top > box2.bottom);
+    }
+
+    // Handle detected collision with cooldown management
+    handleCollisionDetected(vehicle1, vehicle2, i, j, type) {
+        // Create collision pair key to prevent duplicate collisions
+        const collisionKey = `${Math.min(i,j)}-${Math.max(i,j)}`;
+        const currentTime = this.time.now;
+
+        // Initialize collision cooldowns if not exists
+        if (!this.collisionCooldowns) {
+            this.collisionCooldowns = {};
+        }
+
+        // Check cooldown (150ms between same pair collisions - very aggressive for debugging)
+        if (!this.collisionCooldowns[collisionKey] || currentTime - this.collisionCooldowns[collisionKey] > 150) {
+            // Debug collision info
+            const v1Braking = vehicle1.isBraking && vehicle1.isBraking();
+            const v2Braking = vehicle2.isBraking && vehicle2.isBraking();
+            const distance = Phaser.Math.Distance.Between(vehicle1.x, vehicle1.y, vehicle2.x, vehicle2.y);
+            const vel1 = vehicle1.getVelocity();
+            const vel2 = vehicle2.getVelocity();
+            const speed1 = Math.sqrt(vel1.x * vel1.x + vel1.y * vel1.y);
+            const speed2 = Math.sqrt(vel2.x * vel2.x + vel2.y * vel2.y);
+
+            console.log(`COLLISION (${type}): Distance:${distance.toFixed(1)}`);
+            console.log(`Vehicles: ${vehicle1.constructor.name}(${v1Braking ? 'BRAKING' : 'normal'}, speed:${speed1.toFixed(1)}) vs ${vehicle2.constructor.name}(${v2Braking ? 'BRAKING' : 'normal'}, speed:${speed2.toFixed(1)})`);
+            console.log(`Positions: V1(${vehicle1.x.toFixed(1)},${vehicle1.y.toFixed(1)}) V2(${vehicle2.x.toFixed(1)},${vehicle2.y.toFixed(1)})`);
+
+            this.handleVehicleCollision(vehicle1, vehicle2);
+            this.collisionCooldowns[collisionKey] = currentTime;
         }
     }
     
@@ -156,12 +269,20 @@ class GameScene extends Phaser.Scene {
         console.log('Collision detected - xDist:', xDistance, 'yDist:', yDistance);
         
         // Determine collision type based on relative positions
-        if (yDistance < 35 && xDistance < 25) { // More strict rear-end detection
+        // More lenient rear-end detection, especially when braking
+        const frontVehicle = vehicle1.x > vehicle2.x ? vehicle1 : vehicle2;
+        const backVehicle = vehicle1.x > vehicle2.x ? vehicle2 : vehicle1;
+        const frontIsBraking = frontVehicle.isBraking && frontVehicle.isBraking();
+
+        // Adjust collision thresholds for braking scenarios
+        const yThreshold = frontIsBraking ? 45 : 35; // More lenient Y distance when braking
+        const xThreshold = frontIsBraking ? 40 : 25; // More lenient X distance when braking
+
+        if (yDistance < yThreshold && xDistance < xThreshold) {
             // Same lane collision - rear-end collision
-            const frontVehicle = vehicle1.x > vehicle2.x ? vehicle1 : vehicle2;
-            const backVehicle = vehicle1.x > vehicle2.x ? vehicle2 : vehicle1;
-            
-            console.log('Rear-end collision:', backVehicle.constructor.name, 'hitting', frontVehicle.constructor.name);
+
+            console.log(`Rear-end collision: ${backVehicle.constructor.name} hitting ${frontVehicle.constructor.name} ${frontIsBraking ? '(BRAKING!)' : ''}`);
+            console.log(`Thresholds used: Y<${yThreshold}, X<${xThreshold} (actual: Y=${yDistance}, X=${xDistance})`);
             
             // Block the back vehicle and boost the front
             if (backVehicle.blockVehicle) {
@@ -228,6 +349,11 @@ class GameScene extends Phaser.Scene {
             if (vehicle.changeLane) {
                 console.log(`PUSHING ${vehicle.constructor.name} to extended lane ${newExtendedLane}`);
                 vehicle.changeLane(direction);
+
+                // Apply push slowdown effect
+                if (vehicle.receivePushSlowdown) {
+                    vehicle.receivePushSlowdown();
+                }
 
                 // Show exclamation effect when pushed
                 if (vehicle.showExclamationEffect) {
@@ -316,6 +442,13 @@ class GameScene extends Phaser.Scene {
         this.events.on('boostTap', () => {
             if (this.gameStarted && !this.gameEnded) {
                 this.player.useFullBoost();
+            }
+        });
+
+        // Brake events - strategic braking for collision setup
+        this.events.on('brake', () => {
+            if (this.gameStarted && !this.gameEnded) {
+                this.player.activateBrake();
             }
         });
     }

@@ -1,11 +1,14 @@
 class AIVehicle extends Phaser.GameObjects.Container {
-    constructor(scene, x, y, character, difficulty = 0.5) {
+    constructor(scene, x, y, character, difficulty = 0.5, carColor = null) {
         super(scene, x, y);
-        
+
         this.scene = scene;
         this.character = character;
         this.difficulty = difficulty; // 0-1, affects speed and decision making
-        this.currentLane = Phaser.Math.Between(0, GameConfig.LANE_COUNT - 1);
+        this.carColor = carColor; // Custom car color for this AI
+
+        // Determine lane from Y position instead of random assignment
+        this.currentLane = this.getLaneFromY(y);
         this.targetLane = this.currentLane;
         this.isChangingLanes = false;
         this.laneChangeProgress = 0;
@@ -44,6 +47,20 @@ class AIVehicle extends Phaser.GameObjects.Container {
         this.strawberryBoostTime = 0;
         this.blockingObstacle = null;
         this.blockingVehicle = null;
+
+        // Push slowdown tracking
+        this.pushSlowdownTime = 0;
+        this.pushSlowdownMultiplier = 0.6; // 40% slowdown when pushed
+
+        // Brake tracking
+        this.brakeTime = 0;
+        this.brakeMultiplier = 0.4; // 60% slowdown when braking
+        this.brakeDuration = 1500; // 1.5 seconds
+
+        // Collision bounding box (more precise than distance-based detection)
+        this.collisionWidth = 45; // Vehicle width for collision
+        this.collisionHeight = 35; // Vehicle height for collision
+        this.lastPosition = { x: x, y: y }; // Track previous position for velocity-based prediction
         
         // Extended lane system
         this.extendedLane = this.currentLane; // Start in current road lane
@@ -53,19 +70,38 @@ class AIVehicle extends Phaser.GameObjects.Container {
         this.rumbleOffset = 0;
         this.rumbleSpeed = 0;
         this.dustTimer = 0;
+        this.offroadStartTime = 0; // Track when AI went offroad
         
         this.createVehicle();
         scene.add.existing(this);
-        
-        this.y = GameConfig.LANE_Y_POSITIONS[this.currentLane];
+    }
+
+    getLaneFromY(yPosition) {
+        // Find which lane this Y position corresponds to
+        for (let i = 0; i < GameConfig.LANE_Y_POSITIONS.length; i++) {
+            if (Math.abs(GameConfig.LANE_Y_POSITIONS[i] - yPosition) < 20) {
+                return i;
+            }
+        }
+        // Default to lane 0 if not found
+        return 0;
     }
     
     createVehicle() {
-        // Create car body with slight variation for AI
-        const carColor = Phaser.Math.Between(0x555555, 0x888888);
-        const carBody = this.scene.add.rectangle(0, 10, 58, 24, carColor);
-        const carFront = this.scene.add.rectangle(19, 8, 19, 19, carColor + 0x111111);
-        const carBack = this.scene.add.rectangle(-19, 8, 14, 19, carColor + 0x111111);
+        // Use assigned car color or fallback to random
+        let mainColor, accentColor;
+        if (this.carColor) {
+            mainColor = this.carColor.color;
+            accentColor = this.carColor.accent;
+        } else {
+            // Fallback to random color if no specific color assigned
+            mainColor = Phaser.Math.Between(0x555555, 0x888888);
+            accentColor = mainColor + 0x111111;
+        }
+
+        const carBody = this.scene.add.rectangle(0, 10, 58, 24, mainColor);
+        const carFront = this.scene.add.rectangle(19, 8, 19, 19, accentColor);
+        const carBack = this.scene.add.rectangle(-19, 8, 14, 19, accentColor);
         
         // Wheels
         const wheelFront = this.scene.add.circle(14, 20, 7, 0x333333);
@@ -497,6 +533,24 @@ class AIVehicle extends Phaser.GameObjects.Container {
             }
         }
 
+        // Handle push slowdown timer
+        if (this.pushSlowdownTime > 0) {
+            this.pushSlowdownTime -= delta;
+            if (this.pushSlowdownTime <= 0) {
+                this.pushSlowdownTime = 0;
+                console.log(`AI ${this.character.name} push slowdown ended`);
+            }
+        }
+
+        // Handle brake timer
+        if (this.brakeTime > 0) {
+            this.brakeTime -= delta;
+            if (this.brakeTime <= 0) {
+                this.brakeTime = 0;
+                console.log(`AI ${this.character.name} brake ended`);
+            }
+        }
+
         // Calculate speed with ALL boosts stacked (additive system)
         if (!this.isBlocked) {
             let speedMultiplier = 1.0;
@@ -521,6 +575,16 @@ class AIVehicle extends Phaser.GameObjects.Container {
                 this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
             } else {
                 this.currentSpeed = this.baseSpeed * speedMultiplier;
+            }
+
+            // Apply push slowdown if active
+            if (this.pushSlowdownTime > 0) {
+                this.currentSpeed *= this.pushSlowdownMultiplier;
+            }
+
+            // Apply brake slowdown if active
+            if (this.brakeTime > 0) {
+                this.currentSpeed *= this.brakeMultiplier;
             }
         }
         
@@ -554,12 +618,18 @@ class AIVehicle extends Phaser.GameObjects.Container {
             this.rumbleOffset += this.rumbleSpeed * dt;
             const rumbleAmount = Math.sin(this.rumbleOffset) * 4; // 4px rumble amplitude (doubled from 2px for AI)
             this.carContainer.y = rumbleAmount;
-            
+
             // Dust particles
             this.dustTimer += delta;
             if (this.dustTimer > 250) { // Less frequent dust for AI
                 this.showDustEffect();
                 this.dustTimer = 0;
+            }
+
+            // Failsafe: Force return to road after max 1 second offroad (aggressive)
+            if (this.offroadStartTime > 0 && this.scene.time.now - this.offroadStartTime > 1000) {
+                console.log(`AI ${this.character.name} FORCED back to road after 1s offroad`);
+                this.returnToRoad();
             }
         } else if (!this.isAirborne) {
             // No rumble when on road and not airborne
@@ -571,16 +641,97 @@ class AIVehicle extends Phaser.GameObjects.Container {
         
         // Update distance
         this.distanceTraveled += this.currentSpeed * dt;
+
+        // Update position tracking for precise collision detection
+        this.lastPosition.x = this.x;
+        this.lastPosition.y = this.y;
     }
     
+    receivePushSlowdown() {
+        // Apply temporary slowdown when pushed to another lane
+        this.pushSlowdownTime = 1000; // 1 second slowdown
+        console.log(`AI ${this.character.name} received push slowdown - slowing for 1 second`);
+    }
+
+    activateBrake() {
+        // Apply strategic brake for tactical positioning
+        this.brakeTime = this.brakeDuration; // 1.5 seconds
+        this.showBrakeSmokeEffect();
+        console.log(`AI ${this.character.name} activated brake - slowing for tactical positioning`);
+    }
+
+    isBraking() {
+        return this.brakeTime > 0;
+    }
+
+    // Get current bounding box for precise collision detection
+    getBoundingBox() {
+        return {
+            left: this.x - this.collisionWidth / 2,
+            right: this.x + this.collisionWidth / 2,
+            top: this.y - this.collisionHeight / 2,
+            bottom: this.y + this.collisionHeight / 2
+        };
+    }
+
+    // Get predicted bounding box based on current velocity
+    getPredictedBoundingBox(deltaTime) {
+        const velocityX = (this.x - this.lastPosition.x) / deltaTime * 1000; // pixels per second
+        const velocityY = (this.y - this.lastPosition.y) / deltaTime * 1000;
+        const predictedX = this.x + velocityX * deltaTime / 1000;
+        const predictedY = this.y + velocityY * deltaTime / 1000;
+
+        return {
+            left: predictedX - this.collisionWidth / 2,
+            right: predictedX + this.collisionWidth / 2,
+            top: predictedY - this.collisionHeight / 2,
+            bottom: predictedY + this.collisionHeight / 2
+        };
+    }
+
+    // Get swept bounding box that covers entire movement path (for high-speed collision)
+    getSweptBoundingBox() {
+        const currentBox = this.getBoundingBox();
+        const lastBox = {
+            left: this.lastPosition.x - this.collisionWidth / 2,
+            right: this.lastPosition.x + this.collisionWidth / 2,
+            top: this.lastPosition.y - this.collisionHeight / 2,
+            bottom: this.lastPosition.y + this.collisionHeight / 2
+        };
+
+        // Return bounding box that covers entire movement from last position to current
+        return {
+            left: Math.min(currentBox.left, lastBox.left),
+            right: Math.max(currentBox.right, lastBox.right),
+            top: Math.min(currentBox.top, lastBox.top),
+            bottom: Math.max(currentBox.bottom, lastBox.bottom)
+        };
+    }
+
+    // Get current velocity for collision calculations
+    getVelocity() {
+        return {
+            x: this.x - this.lastPosition.x,
+            y: this.y - this.lastPosition.y
+        };
+    }
+
     receiveBoostFromCollision() {
-        // Get a moderate temporary speed boost from being hit from behind
+        // Check if AI was braking for strategic boost bonus
+        const wasBraking = this.isBraking();
+        const boostMultiplier = wasBraking ? 1.8 : 1.4; // Moderate bonus (180% vs 140%) when braking
+        const boostDuration = wasBraking ? 2000 : 1500; // Slight duration bonus (2s vs 1.5s) when braking
+
+        // Get speed boost from being hit from behind
         if (this.isOffroad()) {
-            this.currentSpeed = this.baseSpeed * 1.4 * GameConfig.OFFROAD_SLOWDOWN; // Apply offroad penalty to boost
+            this.currentSpeed = this.baseSpeed * boostMultiplier * GameConfig.OFFROAD_SLOWDOWN; // Apply offroad penalty to boost
         } else {
-            this.currentSpeed = this.baseSpeed * 1.4; // 40% speed boost (more reasonable)
+            this.currentSpeed = this.baseSpeed * boostMultiplier;
         }
-        this.scene.time.delayedCall(1500, () => { // 1.5 seconds (reduced from 3 seconds)
+
+        console.log(`AI ${this.character.name} collision boost - ${wasBraking ? 'STRATEGIC BRAKE BONUS! ' : ''}${boostMultiplier * 100}% speed for ${boostDuration/1000}s`);
+
+        this.scene.time.delayedCall(boostDuration, () => {
             if (!this.isBoosting && !this.isBlocked) {
                 // Reset to appropriate speed based on offroad status
                 if (this.isOffroad()) {
@@ -590,12 +741,10 @@ class AIVehicle extends Phaser.GameObjects.Container {
                 }
             }
         });
-        
+
         // Visual feedback
         this.showExclamationEffect();
         this.showCollisionBoostEffect();
-        
-        console.log('AI vehicle received collision boost - 40% speed boost for 1.5 seconds');
     }
     
     showExclamationEffect() {
@@ -661,10 +810,37 @@ class AIVehicle extends Phaser.GameObjects.Container {
             onComplete: () => flash.destroy()
         });
     }
-    
+
+    showBrakeSmokeEffect() {
+        // Create tire smoke particles when braking
+        for (let i = 0; i < 3; i++) { // Fewer particles for AI
+            const smoke = this.scene.add.circle(
+                this.x - 20 - (i * 8), // Behind the tires in world coordinates
+                this.y + Phaser.Math.Between(-12, 12),
+                Phaser.Math.Between(3, 6), // Slightly smaller for AI
+                0x555555 // Gray smoke color
+            );
+            smoke.setAlpha(0.6); // Slightly less visible for AI
+            smoke.setDepth(2); // Above road but below vehicles
+
+            // Animate smoke particles - they rise and dissipate
+            this.scene.tweens.add({
+                targets: smoke,
+                x: smoke.x - 30,
+                y: smoke.y - Phaser.Math.Between(15, 30), // Smoke rises
+                alpha: 0,
+                scaleX: 1.3,
+                scaleY: 1.3,
+                duration: 500, // Slightly faster for AI
+                onComplete: () => smoke.destroy()
+            });
+        }
+    }
+
     goOffroad(type) {
+        console.log(`AI ${this.character.name} going offroad (${type})`);
         this.currentLane = -1; // Mark as not in a lane
-        
+
         // Move to offroad position
         if (type === 'high') {
             this.extendedLane = -1;
@@ -673,20 +849,30 @@ class AIVehicle extends Phaser.GameObjects.Container {
             this.extendedLane = 4;
             this.y = GameConfig.OFFROAD_LOW_Y;
         }
-        
+
         // Visual feedback
         this.setAlpha(0.8);
         this.rumbleSpeed = 8; // Start rumble effect
-        
-        // AI will try to return to road after a delay
-        this.scene.time.delayedCall(Phaser.Math.Between(500, 1500), () => {
+
+        // Track offroad start time for failsafe
+        this.offroadStartTime = this.scene.time.now;
+
+        // AI will try to return to road after a very short delay
+        const returnDelay = Phaser.Math.Between(100, 400);
+        console.log(`AI ${this.character.name} scheduled to return to road in ${returnDelay}ms`);
+        this.scene.time.delayedCall(returnDelay, () => {
             this.returnToRoad();
         });
     }
     
     returnToRoad() {
-        if (!this.isOffroad()) return;
-        
+        if (!this.isOffroad()) {
+            console.log(`AI ${this.character.name} tried to return to road but already on road`);
+            return;
+        }
+
+        console.log(`AI ${this.character.name} returning to road from offroad (extendedLane: ${this.extendedLane})`);
+
         // Determine which lane to return to
         let targetLane;
         if (this.extendedLane === -1) {
@@ -694,14 +880,17 @@ class AIVehicle extends Phaser.GameObjects.Container {
         } else {
             targetLane = GameConfig.LANE_COUNT - 1; // Return to bottom lane
         }
-        
+
         this.extendedLane = targetLane;
         this.currentLane = targetLane;
         this.targetLane = targetLane;
         this.y = GameConfig.LANE_Y_POSITIONS[targetLane];
-        
+
         // Restore normal appearance
         this.setAlpha(1.0);
         this.rumbleSpeed = 0; // Stop rumble
+        this.offroadStartTime = 0; // Reset offroad timer
+
+        console.log(`AI ${this.character.name} returned to road lane ${targetLane} at Y=${this.y}`);
     }
 }

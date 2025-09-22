@@ -32,8 +32,17 @@ class InputManager {
             const deltaY = pointer.y - this.touchStartY;
             const deltaX = pointer.x - this.touchStartX;
 
-            // Check for vertical swipe
-            if (Math.abs(deltaY) > GameConfig.SWIPE_THRESHOLD && Math.abs(deltaY) > Math.abs(deltaX)) {
+            // Check for horizontal swipe (forward for boost, backward for brake)
+            if (Math.abs(deltaX) > GameConfig.SWIPE_THRESHOLD && Math.abs(deltaX) > Math.abs(deltaY)) {
+                if (deltaX > 0) {
+                    this.onSwipeForward();
+                } else {
+                    this.onSwipeBackward();
+                }
+                this.isSwiping = false;
+            }
+            // Check for vertical swipe (lane changes)
+            else if (Math.abs(deltaY) > GameConfig.SWIPE_THRESHOLD && Math.abs(deltaY) > Math.abs(deltaX)) {
                 if (deltaY < 0) {
                     this.onSwipeUp();
                 } else {
@@ -55,7 +64,15 @@ class InputManager {
     onSwipeDown() {
         this.scene.events.emit('laneChangeDown');
     }
-    
+
+    onSwipeForward() {
+        this.scene.events.emit('boostTap');
+    }
+
+    onSwipeBackward() {
+        this.scene.events.emit('brake');
+    }
+
     onBoostTap() {
         this.scene.events.emit('boostTap');
     }
@@ -82,6 +99,11 @@ class InputManager {
         // Boost controls - tap to use full boost when available
         if (Phaser.Input.Keyboard.JustDown(this.spacebar) || Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
             this.scene.events.emit('boostTap');
+        }
+
+        // Brake controls - left arrow to brake
+        if (Phaser.Input.Keyboard.JustDown(this.cursors.left)) {
+            this.scene.events.emit('brake');
         }
     }
     

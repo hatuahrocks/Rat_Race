@@ -47,6 +47,20 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         this.strawberryBoostSpeed = 0;
         this.strawberryBoostTime = 0;
 
+        // Push slowdown tracking
+        this.pushSlowdownTime = 0;
+        this.pushSlowdownMultiplier = 0.6; // 40% slowdown when pushed
+
+        // Brake tracking
+        this.brakeTime = 0;
+        this.brakeMultiplier = 0.4; // 60% slowdown when braking
+        this.brakeDuration = 1500; // 1.5 seconds
+
+        // Collision bounding box (more precise than distance-based detection)
+        this.collisionWidth = 45; // Vehicle width for collision
+        this.collisionHeight = 35; // Vehicle height for collision
+        this.lastPosition = { x: x, y: y }; // Track previous position for velocity-based prediction
+
         this.createVehicle();
         scene.add.existing(this);
     }
@@ -221,6 +235,32 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
     
     hideDustEffect() {
         this.dustEffect.removeAll(true);
+    }
+
+    showBrakeSmokeEffect() {
+        // Create tire smoke particles when braking
+        for (let i = 0; i < 4; i++) {
+            const smoke = this.scene.add.circle(
+                this.x - 20 - (i * 8), // Behind the tires in world coordinates
+                this.y + Phaser.Math.Between(-12, 12),
+                Phaser.Math.Between(4, 8),
+                0x555555 // Gray smoke color
+            );
+            smoke.setAlpha(0.7);
+            smoke.setDepth(2); // Above road but below vehicles
+
+            // Animate smoke particles - they rise and dissipate
+            this.scene.tweens.add({
+                targets: smoke,
+                x: smoke.x - 30,
+                y: smoke.y - Phaser.Math.Between(20, 40), // Smoke rises
+                alpha: 0,
+                scaleX: 1.5,
+                scaleY: 1.5,
+                duration: 600,
+                onComplete: () => smoke.destroy()
+            });
+        }
     }
     
     hitRamp() {
@@ -404,6 +444,24 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
             }
         }
 
+        // Handle push slowdown timer
+        if (this.pushSlowdownTime > 0) {
+            this.pushSlowdownTime -= delta;
+            if (this.pushSlowdownTime <= 0) {
+                this.pushSlowdownTime = 0;
+                console.log('Push slowdown ended');
+            }
+        }
+
+        // Handle brake timer
+        if (this.brakeTime > 0) {
+            this.brakeTime -= delta;
+            if (this.brakeTime <= 0) {
+                this.brakeTime = 0;
+                console.log('Brake ended');
+            }
+        }
+
         // Calculate speed with ALL boosts stacked (additive system)
         if (!this.isBlocked && !this.hasCollisionBoost) {
             let speedMultiplier = 1.0;
@@ -428,6 +486,16 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
                 this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
             } else {
                 this.currentSpeed = this.baseSpeed * speedMultiplier;
+            }
+
+            // Apply push slowdown if active
+            if (this.pushSlowdownTime > 0) {
+                this.currentSpeed *= this.pushSlowdownMultiplier;
+            }
+
+            // Apply brake slowdown if active
+            if (this.brakeTime > 0) {
+                this.currentSpeed *= this.brakeMultiplier;
             }
 
             // Log when boosts are active for debugging
@@ -484,21 +552,99 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
                 this.currentSpeed = 0;
             }
         }
+
+        // Update position tracking for precise collision detection
+        this.lastPosition.x = this.x;
+        this.lastPosition.y = this.y;
     }
     
     getBoostPercentage() {
         return this.boostMeter / GameConfig.BOOST_MAX_SECONDS;
     }
     
+    receivePushSlowdown() {
+        // Apply temporary slowdown when pushed to another lane
+        this.pushSlowdownTime = 1000; // 1 second slowdown
+        console.log('Player received push slowdown - slowing for 1 second');
+    }
+
+    activateBrake() {
+        // Apply strategic brake for tactical positioning
+        this.brakeTime = this.brakeDuration; // 1.5 seconds
+        this.showBrakeSmokeEffect();
+        console.log('Player activated brake - slowing for tactical positioning');
+    }
+
+    isBraking() {
+        return this.brakeTime > 0;
+    }
+
+    // Get current bounding box for precise collision detection
+    getBoundingBox() {
+        return {
+            left: this.x - this.collisionWidth / 2,
+            right: this.x + this.collisionWidth / 2,
+            top: this.y - this.collisionHeight / 2,
+            bottom: this.y + this.collisionHeight / 2
+        };
+    }
+
+    // Get predicted bounding box based on current velocity
+    getPredictedBoundingBox(deltaTime) {
+        const velocityX = (this.x - this.lastPosition.x) / deltaTime * 1000; // pixels per second
+        const velocityY = (this.y - this.lastPosition.y) / deltaTime * 1000;
+        const predictedX = this.x + velocityX * deltaTime / 1000;
+        const predictedY = this.y + velocityY * deltaTime / 1000;
+
+        return {
+            left: predictedX - this.collisionWidth / 2,
+            right: predictedX + this.collisionWidth / 2,
+            top: predictedY - this.collisionHeight / 2,
+            bottom: predictedY + this.collisionHeight / 2
+        };
+    }
+
+    // Get swept bounding box that covers entire movement path (for high-speed collision)
+    getSweptBoundingBox() {
+        const currentBox = this.getBoundingBox();
+        const lastBox = {
+            left: this.lastPosition.x - this.collisionWidth / 2,
+            right: this.lastPosition.x + this.collisionWidth / 2,
+            top: this.lastPosition.y - this.collisionHeight / 2,
+            bottom: this.lastPosition.y + this.collisionHeight / 2
+        };
+
+        // Return bounding box that covers entire movement from last position to current
+        return {
+            left: Math.min(currentBox.left, lastBox.left),
+            right: Math.max(currentBox.right, lastBox.right),
+            top: Math.min(currentBox.top, lastBox.top),
+            bottom: Math.max(currentBox.bottom, lastBox.bottom)
+        };
+    }
+
+    // Get current velocity for collision calculations
+    getVelocity() {
+        return {
+            x: this.x - this.lastPosition.x,
+            y: this.y - this.lastPosition.y
+        };
+    }
+
     receiveBoostFromCollision() {
-        // Get a moderate temporary speed boost from being hit from behind
+        // Check if player was braking for strategic boost bonus
+        const wasBraking = this.isBraking();
+        const boostMultiplier = wasBraking ? 1.8 : 1.4; // Moderate bonus (180% vs 140%) when braking
+        const boostDuration = wasBraking ? 2000 : 1500; // Slight duration bonus (2s vs 1.5s) when braking
+
+        // Get speed boost from being hit from behind
         const oldSpeed = this.currentSpeed;
         this.hasCollisionBoost = true;
-        this.currentSpeed = this.baseSpeed * 1.4; // 40% speed boost (more reasonable)
-        
-        console.log(`COLLISION BOOST: Speed changed from ${oldSpeed} to ${this.currentSpeed} (base: ${this.baseSpeed})`);
-        
-        this.scene.time.delayedCall(1500, () => { // 1.5 seconds (reduced from 3 seconds)
+        this.currentSpeed = this.baseSpeed * boostMultiplier;
+
+        console.log(`COLLISION BOOST: ${wasBraking ? 'STRATEGIC BRAKE BONUS! ' : ''}${boostMultiplier * 100}% speed for ${boostDuration/1000}s (${oldSpeed} → ${this.currentSpeed})`);
+
+        this.scene.time.delayedCall(boostDuration, () => {
             this.hasCollisionBoost = false;
             if (!this.isBoosting && !this.isBlocked) {
                 this.currentSpeed = this.baseSpeed;
