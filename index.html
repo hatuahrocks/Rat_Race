@@ -6,6 +6,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Rat Race</title>
+
+    <!-- App Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Theme Color -->
+    <meta name="theme-color" content="#FFD700">
     <style>
         * {
             margin: 0;
@@ -49,7 +58,7 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
     <script>
         // Cache busting: append version to all script URLs
-        const gameVersion = '1.0.2';
+        const gameVersion = '1.0.3';
         const scripts = [
             'src/config/config.js',
             'src/data/characters.js',
