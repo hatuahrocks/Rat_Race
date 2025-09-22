@@ -312,20 +312,10 @@ class GameScene extends Phaser.Scene {
             }
         });
 
-        // Boost events
-        this.events.on('boostStart', () => {
+        // Boost events - single tap to use full boost
+        this.events.on('boostTap', () => {
             if (this.gameStarted && !this.gameEnded) {
-                this.player.startBoost();
-            }
-        });
-        
-        this.events.on('boostEnd', () => {
-            this.player.stopBoost();
-        });
-        
-        this.events.on('boostPartial', () => {
-            if (this.gameStarted && !this.gameEnded) {
-                this.player.usePartialBoost();
+                this.player.useFullBoost();
             }
         });
     }
@@ -401,7 +391,9 @@ class GameScene extends Phaser.Scene {
         // Update UI Scene with game data
         const uiScene = this.scene.get('UIScene');
         if (uiScene && uiScene.scene.isActive()) {
-            uiScene.updateBoostMeter(this.player.getBoostPercentage());
+            const boostAvailable = this.player.getBoostPercentage() >= 1.0 && !this.player.boostCooldown;
+            uiScene.updateBoostMeter(this.player.getBoostPercentage(), boostAvailable);
+            uiScene.updateBoostButtons(boostAvailable);
             uiScene.updateProgress(this.levelManager.raceProgress);
             uiScene.updatePosition(this.calculatePosition());
         }
@@ -453,9 +445,7 @@ class GameScene extends Phaser.Scene {
         this.obstacleSpawner.destroy();
         this.events.off('laneChangeUp');
         this.events.off('laneChangeDown');
-        this.events.off('boostStart');
-        this.events.off('boostEnd');
-        this.events.off('boostPartial');
+        this.events.off('boostTap');
     }
 
     collectStrawberry(strawberry, vehicle) {

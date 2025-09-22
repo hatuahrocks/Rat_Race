@@ -5,7 +5,7 @@ class InputManager {
         this.touchStartX = 0;
         this.isSwiping = false;
         this.boostPressed = false;
-        this.boostMode = 'hold'; // 'hold' or 'partial'
+        this.boostMode = 'tap'; // Changed to 'tap' for single-tap full boost
 
         this.keyboardHoldTimer = 0;
         this.keyboardHoldDelay = 300; // ms between continuous lane changes
@@ -56,18 +56,8 @@ class InputManager {
         this.scene.events.emit('laneChangeDown');
     }
     
-    onBoostStart() {
-        if (this.boostMode === 'hold') {
-            this.boostPressed = true;
-            this.scene.events.emit('boostStart');
-        } else {
-            this.scene.events.emit('boostPartial');
-        }
-    }
-    
-    onBoostEnd() {
-        this.boostPressed = false;
-        this.scene.events.emit('boostEnd');
+    onBoostTap() {
+        this.scene.events.emit('boostTap');
     }
 
     
@@ -89,21 +79,9 @@ class InputManager {
             this.keyboardHoldTimer = this.scene.time.now + this.keyboardHoldDelay;
         }
 
-        // Boost controls
-        if (this.boostMode === 'hold') {
-            if (this.spacebar.isDown || this.cursors.right.isDown) {
-                if (!this.boostPressed) {
-                    this.boostPressed = true;
-                    this.scene.events.emit('boostStart');
-                }
-            } else if (this.boostPressed) {
-                this.boostPressed = false;
-                this.scene.events.emit('boostEnd');
-            }
-        } else {
-            if (Phaser.Input.Keyboard.JustDown(this.spacebar) || Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
-                this.scene.events.emit('boostPartial');
-            }
+        // Boost controls - tap to use full boost when available
+        if (Phaser.Input.Keyboard.JustDown(this.spacebar) || Phaser.Input.Keyboard.JustDown(this.cursors.right)) {
+            this.scene.events.emit('boostTap');
         }
     }
     

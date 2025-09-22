@@ -451,16 +451,9 @@ class AIVehicle extends Phaser.GameObjects.Container {
             }
         }
         
-        // Handle boost
+        // Handle boost meter drain and regeneration
         if (this.isBoosting && this.boostMeter > 0 && !this.isBlocked) {
             this.boostMeter -= dt;
-            // Apply boost speed, considering offroad status
-            if (this.isOffroad()) {
-                this.currentSpeed = this.baseSpeed * GameConfig.BOOST_SPEED_MULTIPLIER * GameConfig.OFFROAD_SLOWDOWN;
-            } else {
-                this.currentSpeed = this.baseSpeed * GameConfig.BOOST_SPEED_MULTIPLIER;
-            }
-            
             if (this.boostMeter <= 0) {
                 this.boostMeter = 0;
                 this.stopBoost();
@@ -470,43 +463,50 @@ class AIVehicle extends Phaser.GameObjects.Container {
                 this.boostMeter += GameConfig.BOOST_REGEN_PER_SEC * dt * 0.8; // AI regenerates slower
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);
             }
+        }
 
-            // Handle ramp boost timer
+        // Handle ramp boost timer
+        if (this.rampBoostTime > 0) {
+            this.rampBoostTime -= delta;
+            if (this.rampBoostTime <= 0) {
+                this.rampBoostTime = 0;
+                this.rampBoostSpeed = 0;
+            }
+        }
+
+        // Handle strawberry boost timer
+        if (this.strawberryBoostTime > 0) {
+            this.strawberryBoostTime -= delta;
+            if (this.strawberryBoostTime <= 0) {
+                this.strawberryBoostTime = 0;
+                this.strawberryBoostSpeed = 0;
+            }
+        }
+
+        // Calculate speed with ALL boosts stacked (additive system)
+        if (!this.isBlocked) {
+            let speedMultiplier = 1.0;
+
+            // Add manual boost multiplier
+            if (this.isBoosting && this.boostMeter > 0) {
+                speedMultiplier += (GameConfig.BOOST_SPEED_MULTIPLIER - 1.0); // +0.6 (60% boost)
+            }
+
+            // Add ramp boost multiplier
             if (this.rampBoostTime > 0) {
-                this.rampBoostTime -= delta;
-                if (this.rampBoostTime <= 0) {
-                    this.rampBoostTime = 0;
-                    this.rampBoostSpeed = 0;
-                }
+                speedMultiplier += 0.5; // +50% boost from ramp
             }
 
-            // Handle strawberry boost timer
+            // Add strawberry boost multiplier
             if (this.strawberryBoostTime > 0) {
-                this.strawberryBoostTime -= delta;
-                if (this.strawberryBoostTime <= 0) {
-                    this.strawberryBoostTime = 0;
-                    this.strawberryBoostSpeed = 0;
-                }
+                speedMultiplier += 0.7; // +70% boost from strawberry
             }
 
-            if (!this.isBlocked) {
-                // Calculate base speed first
-                let speedMultiplier = 1.0;
-
-                // Apply power-up boosts (these should be VERY noticeable!)
-                if (this.strawberryBoostTime > 0) {
-                    speedMultiplier = Math.max(speedMultiplier, 1.7); // 70% boost from strawberry (more than manual boost!)
-                }
-                if (this.rampBoostTime > 0) {
-                    speedMultiplier = Math.max(speedMultiplier, 1.5); // 50% boost from ramp (similar to manual boost)
-                }
-
-                // Set speed based on whether we're offroad or not
-                if (this.isOffroad()) {
-                    this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
-                } else {
-                    this.currentSpeed = this.baseSpeed * speedMultiplier;
-                }
+            // Set speed based on whether we're offroad or not
+            if (this.isOffroad()) {
+                this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
+            } else {
+                this.currentSpeed = this.baseSpeed * speedMultiplier;
             }
         }
         

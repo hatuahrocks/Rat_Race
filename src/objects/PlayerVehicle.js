@@ -16,9 +16,10 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         this.isAirborne = false;
         this.airborneTime = 0;
         
-        // Boost properties
+        // Boost properties - new tap system
         this.boostMeter = GameConfig.BOOST_MAX_SECONDS;
         this.isBoosting = false;
+        this.boostCooldown = false; // Prevents boost use until meter is full
         
         // Collision properties
         this.isBlocked = false;
@@ -149,30 +150,21 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         return true;
     }
     
-    startBoost() {
-        if (this.boostMeter > 0 && !this.isBlocked) {
+    useFullBoost() {
+        // Only allow boost if meter is full and not on cooldown
+        if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && !this.boostCooldown && !this.isBlocked) {
             this.isBoosting = true;
+            this.boostCooldown = true; // Prevent using again until full
             this.showBoostEffect();
-        }
-    }
-    
-    stopBoost() {
-        this.isBoosting = false;
-        this.hideBoostEffect();
-    }
-    
-    usePartialBoost() {
-        const boostAmount = GameConfig.BOOST_MAX_SECONDS * 0.2;
-        if (this.boostMeter >= boostAmount) {
-            this.boostMeter -= boostAmount;
-            // Apply temporary speed boost
-            this.currentSpeed = this.baseSpeed * GameConfig.BOOST_SPEED_MULTIPLIER;
-            this.showBoostEffect();
-            
-            this.scene.time.delayedCall(500, () => {
-                this.currentSpeed = this.baseSpeed;
-                this.hideBoostEffect();
-            });
+
+            console.log('Full boost activated!');
+
+            // Play boost sound effect
+            if (this.scene.audioManager) {
+                this.scene.audioManager.playSound('boost');
+            }
+        } else {
+            console.log('Boost not available - meter:', this.boostMeter, 'cooldown:', this.boostCooldown, 'blocked:', this.isBlocked);
         }
     }
     
@@ -362,70 +354,82 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
             }
         }
         
-        // Handle boost
+        // Handle boost meter drain and regeneration
         if (this.isBoosting && this.boostMeter > 0 && !this.isBlocked) {
             this.boostMeter -= dt;
-            // Apply boost speed, considering offroad status
-            if (this.isOffroad()) {
-                this.currentSpeed = this.baseSpeed * GameConfig.BOOST_SPEED_MULTIPLIER * GameConfig.OFFROAD_SLOWDOWN;
-            } else {
-                this.currentSpeed = this.baseSpeed * GameConfig.BOOST_SPEED_MULTIPLIER;
-            }
-            
             if (this.boostMeter <= 0) {
                 this.boostMeter = 0;
-                this.stopBoost();
+                this.isBoosting = false;
+                this.hideBoostEffect();
+                console.log('Boost depleted');
             }
         } else {
             // Regenerate boost
             if (this.boostMeter < GameConfig.BOOST_MAX_SECONDS) {
                 this.boostMeter += GameConfig.BOOST_REGEN_PER_SEC * dt;
                 this.boostMeter = Math.min(this.boostMeter, GameConfig.BOOST_MAX_SECONDS);
+
+                // When meter reaches full, remove cooldown
+                if (this.boostMeter >= GameConfig.BOOST_MAX_SECONDS && this.boostCooldown) {
+                    this.boostCooldown = false;
+                    console.log('Boost recharged and ready!');
+                }
             }
-            
-            // Handle ramp boost timer
+        }
+
+        // Handle ramp boost timer
+        if (this.rampBoostTime > 0) {
+            this.rampBoostTime -= delta;
+            if (this.rampBoostTime <= 0) {
+                this.rampBoostTime = 0;
+                this.rampBoostSpeed = 0;
+                console.log('Ramp boost ended');
+            }
+        }
+
+        // Handle strawberry boost timer
+        if (this.strawberryBoostTime > 0) {
+            this.strawberryBoostTime -= delta;
+            if (this.strawberryBoostTime <= 0) {
+                this.strawberryBoostTime = 0;
+                this.strawberryBoostSpeed = 0;
+                console.log('Strawberry boost ended');
+            }
+        }
+
+        // Calculate speed with ALL boosts stacked (additive system)
+        if (!this.isBlocked && !this.hasCollisionBoost) {
+            let speedMultiplier = 1.0;
+
+            // Add manual boost multiplier
+            if (this.isBoosting && this.boostMeter > 0) {
+                speedMultiplier += (GameConfig.BOOST_SPEED_MULTIPLIER - 1.0); // +0.6 (60% boost)
+            }
+
+            // Add ramp boost multiplier
             if (this.rampBoostTime > 0) {
-                this.rampBoostTime -= delta;
-                if (this.rampBoostTime <= 0) {
-                    this.rampBoostTime = 0;
-                    this.rampBoostSpeed = 0;
-                    console.log('Ramp boost ended');
-                }
+                speedMultiplier += 0.5; // +50% boost from ramp
             }
 
-            // Handle strawberry boost timer
+            // Add strawberry boost multiplier
             if (this.strawberryBoostTime > 0) {
-                this.strawberryBoostTime -= delta;
-                if (this.strawberryBoostTime <= 0) {
-                    this.strawberryBoostTime = 0;
-                    this.strawberryBoostSpeed = 0;
-                    console.log('Strawberry boost ended');
-                }
+                speedMultiplier += 0.7; // +70% boost from strawberry
             }
 
-            if (!this.isBlocked && !this.hasCollisionBoost) {
-                // Calculate base speed first
-                let speedMultiplier = 1.0;
+            // Set speed based on whether we're offroad or not
+            if (this.isOffroad()) {
+                this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
+            } else {
+                this.currentSpeed = this.baseSpeed * speedMultiplier;
+            }
 
-                // Apply power-up boosts (these should be VERY noticeable!)
-                if (this.strawberryBoostTime > 0) {
-                    speedMultiplier = Math.max(speedMultiplier, 1.7); // 70% boost from strawberry (more than manual boost!)
-                }
-                if (this.rampBoostTime > 0) {
-                    speedMultiplier = Math.max(speedMultiplier, 1.5); // 50% boost from ramp (similar to manual boost)
-                }
-
-                // Set speed based on whether we're offroad or not
-                if (this.isOffroad()) {
-                    this.currentSpeed = this.baseSpeed * speedMultiplier * GameConfig.OFFROAD_SLOWDOWN;
-                } else {
-                    this.currentSpeed = this.baseSpeed * speedMultiplier;
-                }
-
-                // Log when boosts are active for debugging
-                if (speedMultiplier > 1.0) {
-                    console.log(`Speed boost active! Multiplier: ${speedMultiplier}, Speed: ${this.currentSpeed}`);
-                }
+            // Log when boosts are active for debugging
+            if (speedMultiplier > 1.0) {
+                const activeBoosts = [];
+                if (this.isBoosting && this.boostMeter > 0) activeBoosts.push('manual');
+                if (this.rampBoostTime > 0) activeBoosts.push('ramp');
+                if (this.strawberryBoostTime > 0) activeBoosts.push('strawberry');
+                console.log(`Speed boosts active! [${activeBoosts.join(', ')}] Total multiplier: ${speedMultiplier.toFixed(2)}, Speed: ${this.currentSpeed.toFixed(0)}`);
             }
         }
         
@@ -464,8 +468,7 @@ class PlayerVehicle extends Phaser.GameObjects.Container {
         if (this.isBlocked && this.blockingVehicle) {
             // Check if the blocking vehicle has moved away - be more strict about clearing
             const distance = Phaser.Math.Distance.Between(this.x, this.y, this.blockingVehicle.x, this.blockingVehicle.y);
-            const xDistance = Math.abs(this.x - this.blockingVehicle.x);
-            
+
             // Only clear if vehicle is significantly ahead or far away - even stricter
             if (distance > 100 || (this.blockingVehicle.x - this.x) > 80) { // Much stricter clearing conditions
                 this.clearVehicleBlock();

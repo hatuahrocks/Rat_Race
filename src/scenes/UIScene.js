@@ -124,23 +124,18 @@ class UIScene extends Phaser.Scene {
 
             button.add([bg, text]);
 
-            // Touch events
-            bg.on('pointerdown', () => {
-                bg.setScale(0.9);
-                bg.setFillStyle(0xFF6600);
-                this.scene.get('GameScene').events.emit('boostStart');
-            });
-
+            // Touch events - single tap to use full boost
             bg.on('pointerup', () => {
-                bg.setScale(1);
-                bg.setFillStyle(0xFF0000);
-                this.scene.get('GameScene').events.emit('boostEnd');
-            });
+                bg.setScale(0.9);
+                this.scene.get('GameScene').events.emit('boostTap');
 
-            bg.on('pointerout', () => {
-                bg.setScale(1);
-                bg.setFillStyle(0xFF0000);
-                this.scene.get('GameScene').events.emit('boostEnd');
+                // Visual feedback
+                this.tweens.add({
+                    targets: bg,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 100
+                });
             });
 
             return button;
@@ -206,16 +201,26 @@ class UIScene extends Phaser.Scene {
         });
     }
     
-    updateBoostMeter(percentage) {
+    updateBoostMeter(percentage, isAvailable = true) {
         this.boostFill.width = this.boostMeterMaxWidth * percentage;
-        
-        // Change color based on boost level
-        if (percentage > 0.6) {
-            this.boostFill.setFillStyle(0x00FF00); // Green
-        } else if (percentage > 0.3) {
-            this.boostFill.setFillStyle(0xFFFF00); // Yellow
+
+        // Color system: Green when full and usable, Red when empty/building
+        if (percentage >= 1.0 && isAvailable) {
+            this.boostFill.setFillStyle(0x00FF00); // Green - ready to use
         } else {
-            this.boostFill.setFillStyle(0xFF0000); // Red
+            this.boostFill.setFillStyle(0xFF0000); // Red - building up or in use
+        }
+    }
+
+    updateBoostButtons(isAvailable) {
+        // Update button colors to match boost availability
+        const color = isAvailable ? 0x00FF00 : 0xFF0000; // Green when available, red when not
+
+        if (this.boostButtonLeft && this.boostButtonLeft.list[0]) {
+            this.boostButtonLeft.list[0].setFillStyle(color);
+        }
+        if (this.boostButtonRight && this.boostButtonRight.list[0]) {
+            this.boostButtonRight.list[0].setFillStyle(color);
         }
     }
     
