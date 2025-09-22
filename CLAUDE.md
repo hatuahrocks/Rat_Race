@@ -108,6 +108,18 @@ BOOST_SPEED_MULTIPLIER: 1.8 // Boost multiplier
 - **Spacebar**: Boost
 - **Touch/Swipe**: Mobile controls for lane changes
 
+## Version Management
+**IMPORTANT**: Always increment the version number when making changes:
+1. Edit `src/config/config.js`
+2. Update `GameConfig.VERSION` (e.g., from '1.0.1' to '1.0.2')
+3. This displays in the bottom-right corner of the title screen
+4. Helps verify GitHub Pages has updated with latest changes
+
+Version format: `MAJOR.MINOR.PATCH`
+- Patch: Bug fixes (1.0.1 → 1.0.2)
+- Minor: New features (1.0.2 → 1.1.0)
+- Major: Breaking changes (1.1.0 → 2.0.0)
+
 ## Testing Commands
 ```bash
 # Start development server (local only)
