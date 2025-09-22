@@ -81,8 +81,8 @@ class ObstacleSpawner {
         const lane = Phaser.Math.Between(0, GameConfig.LANE_COUNT - 1);
         const y = GameConfig.LANE_Y_POSITIONS[lane];
         
-        // Check if lane is clear
-        if (this.isLaneClear(lane)) {
+        // Check if lane is clear (including strawberries)
+        if (this.isLaneClearIncludingStrawberries(lane)) {
             const obstacleType = Phaser.Math.RND.pick(this.levelTheme.obstacles);
             const obstacle = new Obstacle(this.scene, this.spawnX, y, obstacleType, lane);
             this.obstacles.push(obstacle);
@@ -93,8 +93,8 @@ class ObstacleSpawner {
         const lane = Phaser.Math.Between(0, GameConfig.LANE_COUNT - 1);
         const y = GameConfig.LANE_Y_POSITIONS[lane];
         
-        // Check if lane is clear
-        if (this.isLaneClear(lane)) {
+        // Check if lane is clear (including strawberries)
+        if (this.isLaneClearIncludingStrawberries(lane)) {
             const ramp = new Ramp(this.scene, this.spawnX, y, lane);
             this.ramps.push(ramp);
             console.log('Ramp spawned at lane', lane, 'position', this.spawnX, y);
@@ -103,21 +103,48 @@ class ObstacleSpawner {
     
     isLaneClear(lane) {
         const y = GameConfig.LANE_Y_POSITIONS[lane];
-        
+
         // Check obstacles
         for (let obstacle of this.obstacles) {
             if (Math.abs(obstacle.y - y) < 20 && obstacle.x > this.spawnX - GameConfig.SPAWN.MIN_GAP) {
                 return false;
             }
         }
-        
+
         // Check ramps
         for (let ramp of this.ramps) {
             if (Math.abs(ramp.y - y) < 20 && ramp.x > this.spawnX - GameConfig.SPAWN.MIN_GAP) {
                 return false;
             }
         }
-        
+
+        return true;
+    }
+
+    isLaneClearIncludingStrawberries(lane) {
+        const y = GameConfig.LANE_Y_POSITIONS[lane];
+
+        // Check obstacles
+        for (let obstacle of this.obstacles) {
+            if (Math.abs(obstacle.y - y) < 20 && obstacle.x > this.spawnX - GameConfig.SPAWN.MIN_GAP) {
+                return false;
+            }
+        }
+
+        // Check ramps
+        for (let ramp of this.ramps) {
+            if (Math.abs(ramp.y - y) < 20 && ramp.x > this.spawnX - GameConfig.SPAWN.MIN_GAP) {
+                return false;
+            }
+        }
+
+        // Check strawberries
+        for (let strawberry of this.strawberries) {
+            if (Math.abs(strawberry.y - y) < 20 && strawberry.x > this.spawnX - GameConfig.SPAWN.MIN_GAP) {
+                return false;
+            }
+        }
+
         return true;
     }
     
@@ -196,10 +223,14 @@ class ObstacleSpawner {
         const lane = Phaser.Math.Between(0, GameConfig.LANE_COUNT - 1);
         const y = GameConfig.LANE_Y_POSITIONS[lane];
 
-        // Strawberries don't need to check for lane clearing since they float above
-        const strawberry = new Strawberry(this.scene, this.spawnX, y);
-        this.strawberries.push(strawberry);
-        console.log('Strawberry spawned at lane', lane, 'position', this.spawnX, y);
+        // Check if lane is clear before spawning strawberry
+        if (this.isLaneClearIncludingStrawberries(lane)) {
+            const strawberry = new Strawberry(this.scene, this.spawnX, y);
+            this.strawberries.push(strawberry);
+            console.log('Strawberry spawned at lane', lane, 'position', this.spawnX, y);
+        } else {
+            console.log('Strawberry spawn blocked - lane', lane, 'not clear');
+        }
     }
 
     checkStrawberryCollision(vehicle) {

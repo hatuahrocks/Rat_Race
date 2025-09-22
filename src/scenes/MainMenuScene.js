@@ -54,7 +54,8 @@ class MainMenuScene extends Phaser.Scene {
             fontFamily: 'Arial Black',
             color: '#FFD700',
             stroke: '#000000',
-            strokeThickness: 8
+            strokeThickness: 8,
+            resolution: 2 // Higher resolution for crisp text
         });
         title.setOrigin(0.5);
         

@@ -18,12 +18,20 @@ function initializeGame() {
         type: Phaser.AUTO,
         width: GameConfig.VIEWPORT.WIDTH,
         height: GameConfig.VIEWPORT.HEIGHT,
-    parent: 'phaser-game',
-    backgroundColor: '#87CEEB',
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
-    },
+        parent: 'phaser-game',
+        backgroundColor: '#87CEEB',
+        antialias: true,
+        antialiasGL: true,
+        render: {
+            antialias: true,
+            antialiasGL: true,
+            mipmapFilter: 'LINEAR_MIPMAP_LINEAR',
+            roundPixels: false
+        },
+        scale: {
+            mode: Phaser.Scale.FIT,
+            autoCenter: Phaser.Scale.CENTER_BOTH
+        },
     physics: {
         default: 'arcade',
         arcade: {
