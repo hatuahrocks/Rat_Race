@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 const fs = require('fs');
 
-class RatRacerNavigationTester {
+class RatRaceNavigationTester {
     constructor() {
         this.browser = null;
         this.page = null;
@@ -240,11 +240,11 @@ class RatRacerNavigationTester {
 
 // Run the test
 async function main() {
-    console.log('🚀 Starting Full Navigation Test for Rat Racer...');
+    console.log('🚀 Starting Full Navigation Test for Rat Race...');
     console.log('Target: Main Menu → Character Selection → Racing');
     console.log('=' .repeat(50));
     
-    const tester = new RatRacerNavigationTester();
+    const tester = new RatRaceNavigationTester();
     const success = await tester.runFullNavigationTest();
     
     if (success) {

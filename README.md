@@ -1,4 +1,4 @@
-# 🐀 Rat Racer
+# 🐀 Rat Race
 
 An Excitebike-style racing game built with Phaser 3 featuring advanced collision mechanics, 6-lane racing system, and strategic offroad gameplay. Race as one of 8 unique rat characters with customizable car colors!
 

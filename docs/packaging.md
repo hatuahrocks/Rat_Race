@@ -1,4 +1,4 @@
-# Rat Racer - Packaging & Deployment Guide
+# Rat Race - Packaging & Deployment Guide
 
 ## Running Locally
 
@@ -51,7 +51,7 @@ php -S localhost:8080
 npm run build-zip
 ```
 
-This creates `rat-racer.zip` with:
+This creates `rat-race.zip` with:
 - index.html at root
 - All source files
 - All assets
@@ -60,10 +60,10 @@ This creates `rat-racer.zip` with:
 ### Manual Build
 ```bash
 # Create zip file
-zip -r rat-racer.zip index.html src assets package.json
+zip -r rat-race.zip index.html src assets package.json
 
 # Exclude unnecessary files
-zip -r rat-racer.zip index.html src assets -x "*.DS_Store" -x "__MACOSX/*"
+zip -r rat-race.zip index.html src assets -x "*.DS_Store" -x "__MACOSX/*"
 ```
 
 ### Newgrounds Upload Checklist
@@ -87,8 +87,8 @@ zip -r rat-racer.zip index.html src assets -x "*.DS_Store" -x "__MACOSX/*"
 1. **manifest.json**
 ```json
 {
-  "name": "Rat Racer",
-  "short_name": "RatRacer",
+  "name": "Rat Race",
+  "short_name": "RatRace",
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "landscape",
@@ -111,7 +111,7 @@ zip -r rat-racer.zip index.html src assets -x "*.DS_Store" -x "__MACOSX/*"
 
 2. **Service Worker (sw.js)**
 ```javascript
-const CACHE_NAME = 'rat-racer-v1';
+const CACHE_NAME = 'rat-race-v1';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -1,4 +1,4 @@
-# Rat Racer - Phaser 3 HTML5 Game
+# Rat Race - Phaser 3 HTML5 Game
 
 ## Current Game State
 A fully functional Excitebike-style racing game with advanced collision mechanics, 6-lane system, and comprehensive visual effects.
