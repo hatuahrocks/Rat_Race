@@ -46,9 +46,9 @@ class Ramp extends Phaser.GameObjects.Container {
     }
     
     onHit() {
-        if (!this.hasBeenHit) {
+        if (!this.hasBeenHit && this.scene && this.scene.tweens) {
             this.hasBeenHit = true;
-            
+
             // Visual feedback
             this.scene.tweens.add({
                 targets: this,
