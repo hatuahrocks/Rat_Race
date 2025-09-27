@@ -1,5 +1,5 @@
 const GameConfig = {
-    VERSION: '1.7.2', // Increment this for each update
+    VERSION: '1.8.6', // Fixed warning circle transparency
     LANE_COUNT: 4,
     LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
     OFFROAD_HIGH_Y: 184, // Above top lane

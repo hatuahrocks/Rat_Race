@@ -9,20 +9,16 @@ class LevelManager {
     }
     
     setTheme(themeId) {
-        // Find theme in LevelThemes object
-        const themeKeys = Object.keys(LevelThemes);
-        for (let key of themeKeys) {
-            if (LevelThemes[key].id === themeId) {
-                this.currentTheme = LevelThemes[key];
-                break;
-            }
-        }
-        
-        // Fallback to first theme if not found
-        if (!this.currentTheme) {
-            this.currentTheme = LevelThemes.LIVING_ROOM;
-        }
-        
+        console.log('Setting theme to:', themeId);
+        console.log('Available themes:', Object.keys(LevelThemes));
+
+        // FORCE GARDEN THEME ALWAYS FOR NOW
+        console.log('Forcing GARDEN theme (overriding requested theme)');
+        this.currentTheme = LevelThemes.GARDEN;
+
+        console.log('Final theme:', this.currentTheme.name);
+        console.log('Current theme obstacles:', this.currentTheme.obstacles);
+
         this.applyTheme();
     }
     

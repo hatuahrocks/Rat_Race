@@ -23,7 +23,7 @@ class GameScene extends Phaser.Scene {
         
         // Get selected character
         const selectedCharacter = this.registry.get('selectedCharacter') || Characters[0];
-        const currentTheme = this.registry.get('currentTheme') || 'living_room';
+        const currentTheme = this.registry.get('currentTheme') || 'garden';
         
         // Initialize level
         this.levelManager = new LevelManager(this);

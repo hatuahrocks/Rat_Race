@@ -80,10 +80,16 @@ class ObstacleSpawner {
     spawnObstacle() {
         const lane = Phaser.Math.Between(0, GameConfig.LANE_COUNT - 1);
         const y = GameConfig.LANE_Y_POSITIONS[lane];
-        
+
         // Check if lane is clear (including strawberries)
         if (this.isLaneClearIncludingStrawberries(lane)) {
+            // Check if theme has obstacles array
+            if (!this.levelTheme || !this.levelTheme.obstacles || this.levelTheme.obstacles.length === 0) {
+                console.warn('No obstacles defined in theme:', this.levelTheme);
+                return;
+            }
             const obstacleType = Phaser.Math.RND.pick(this.levelTheme.obstacles);
+            console.log('Spawning obstacle type:', obstacleType);
             const obstacle = new Obstacle(this.scene, this.spawnX, y, obstacleType, lane);
             this.obstacles.push(obstacle);
         }
