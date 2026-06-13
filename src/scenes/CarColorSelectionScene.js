@@ -245,9 +245,8 @@ class CarColorSelectionScene extends Phaser.Scene {
     }
     
     createStartButton(x, y) {
-        return GameArt.createButton(this, x, y, 220, 52, 'START RACE!', { color: 0x2EB94E, fontSize: 22 }, () => {
-            this.scene.start('GameScene');
-            this.scene.launch('UIScene');
+        return GameArt.createButton(this, x, y, 200, 52, 'NEXT', { color: 0x2EB94E, fontSize: 22 }, () => {
+            this.scene.start('TrackSelectionScene');
         });
     }
     

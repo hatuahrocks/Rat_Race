@@ -89,31 +89,35 @@ class GameScene extends Phaser.Scene {
             character.name !== playerCharacter.name
         );
 
-        // Available lanes (player is in lane 1, so use 0, 2, 3)
-        const availableLanes = [0, 2, 3];
-        const maxAI = Math.min(GameConfig.AI.COUNT, availableLanes.length, aiCarColors.length, aiCharacters.length);
+        // Difficulty controls how many rivals spawn and how sharp they are
+        const diffKey = this.registry.get('difficulty') || 'medium';
+        const diff = GameConfig.DIFFICULTY[diffKey] || GameConfig.DIFFICULTY.medium;
 
+        // Start grid: player is in lane 1 at x=50; rivals fill the remaining
+        // lanes, then a second column starts slightly behind
+        const spawnSlots = [
+            { lane: 0, x: 50 },
+            { lane: 2, x: 50 },
+            { lane: 3, x: 50 },
+            { lane: 0, x: -60 },
+            { lane: 3, x: -60 }
+        ];
+        const maxAI = Math.min(diff.aiCount, spawnSlots.length, aiCarColors.length, aiCharacters.length);
 
         // Shuffle arrays to get random selection
         const shuffledCarColors = this.shuffleArray([...aiCarColors]);
         const shuffledCharacters = this.shuffleArray([...aiCharacters]);
 
         for (let i = 0; i < maxAI; i++) {
-            const lane = availableLanes[i];
-            const aiCharacter = shuffledCharacters[i];
-            const aiCarColor = shuffledCarColors[i];
-
-            // Stagger X positions slightly to avoid perfect alignment
-            const staggerX = 50 + Phaser.Math.Between(-10, 10);
-
-
+            const slot = spawnSlots[i];
             const ai = new AIVehicle(
                 this,
-                staggerX,
-                GameConfig.LANE_Y_POSITIONS[lane],
-                aiCharacter,
-                0.5 + (i * 0.2),
-                aiCarColor // Pass the car color
+                slot.x + Phaser.Math.Between(-8, 8),
+                GameConfig.LANE_Y_POSITIONS[slot.lane],
+                shuffledCharacters[i],
+                Math.min(1, diff.aiSkill + (i * 0.08)),
+                shuffledCarColors[i],
+                diff.speedRange
             );
             this.aiVehicles.push(ai);
         }
@@ -592,7 +596,7 @@ class GameScene extends Phaser.Scene {
             this.scene.stop('UIScene');
             this.scene.start('RaceEndScene', {
                 position: finalPosition,
-                totalRacers: GameConfig.AI.COUNT + 1,
+                totalRacers: this.aiVehicles.length + 1,
                 character: this.registry.get('selectedCharacter'),
                 stats: stats
             });

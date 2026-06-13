@@ -2,7 +2,8 @@
 // brain (decision making), a lane-change cooldown, rubber-banding to keep
 // races close, and the offroad return-to-road failsafe.
 class AIVehicle extends Vehicle {
-    constructor(scene, x, y, character, difficulty = 0.5, carColor = null) {
+    constructor(scene, x, y, character, difficulty = 0.5, carColor = null, speedRange = null) {
+        const range = speedRange || [GameConfig.AI.MIN_SPEED_MULT, GameConfig.AI.MAX_SPEED_MULT];
         super(scene, x, y, character, {
             isPlayer: false,
             colors: carColor || { color: 0x666666, accent: 0x777777 },
@@ -17,7 +18,7 @@ class AIVehicle extends Vehicle {
             boostParticleCount: 2,
             boostParticleColor: 0xFFAA00,
             baseSpeed: GameConfig.BASE_FORWARD_SPEED *
-                Phaser.Math.FloatBetween(GameConfig.AI.MIN_SPEED_MULT, GameConfig.AI.MAX_SPEED_MULT)
+                Phaser.Math.FloatBetween(range[0], range[1])
         });
 
         this.difficulty = difficulty; // 0-1, affects speed and decision making

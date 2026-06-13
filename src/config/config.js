@@ -1,5 +1,5 @@
 const GameConfig = {
-    VERSION: '1.11.0', // Vehicle base class, race music, best times, theme un-forced, dead code removed
+    VERSION: '1.12.0', // Track picker (Garden/Beach/Living Room scenery), difficulty settings, up to 6 racers
     LANE_COUNT: 4,
     LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
     OFFROAD_HIGH_Y: 184, // Above top lane
@@ -43,11 +43,18 @@ const GameConfig = {
     },
     
     AI: {
-        COUNT: 3,
+        COUNT: 3, // fallback when no difficulty is selected
         MIN_SPEED_MULT: 0.85,
         MAX_SPEED_MULT: 1.1,
         LANE_CHANGE_FREQ: 2000,
         BOOST_FREQ: 4000
+    },
+
+    // Difficulty settings chosen on the track-select screen
+    DIFFICULTY: {
+        easy:   { label: 'EASY',   aiCount: 3, aiSkill: 0.35, speedRange: [0.80, 1.00] },
+        medium: { label: 'MEDIUM', aiCount: 4, aiSkill: 0.55, speedRange: [0.85, 1.10] },
+        hard:   { label: 'HARD',   aiCount: 5, aiSkill: 0.80, speedRange: [0.95, 1.20] }
     },
     
     SPAWN: {

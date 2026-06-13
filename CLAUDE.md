@@ -16,8 +16,8 @@ An Excitebike-style lane racing game: 6-lane system (4 road + 2 offroad), vehicl
 - **Obstacles**: hitting one triggers a ~1.1s spin-out (`SPIN_OUT_DURATION`) — heavy slowdown with a 360° spin animation, NOT a full stop. The world never freezes. Airborne vehicles (off ramps) clear obstacles entirely.
 - Collision detection: bounding boxes + swept boxes for high speed (GameScene.checkVehicleCollisions)
 
-### AI
-- 3 opponents with per-race speed variance and difficulty-scaled decisions
+### AI & difficulty
+- 3-5 opponents per `GameConfig.DIFFICULTY` (easy/medium/hard set on the track-select screen; controls AI count, skill, and speed range)
 - **Rubber-banding** (AIVehicle.update): AI ahead of the player by >320px eases off (down to 0.7x); behind by >220px speeds up (up to 1.45x). Keeps rivals on screen and races close.
 - AI seeks strawberries/ramps, avoids obstacles, returns to road within ~1s of going offroad
 
@@ -38,7 +38,7 @@ RatRace/
 │   ├── main.js             # Phaser config + scene registration
 │   ├── config/
 │   │   ├── config.js       # GameConfig: all constants + VERSION
-│   │   └── LevelThemes.js  # theme defs (GARDEN is default; others share its backdrop for now)
+│   │   └── LevelThemes.js  # 3 themes (Garden/Beach/Living Room), each with full palette + scenery; LevelManager builds the environment from theme.palette
 │   ├── data/
 │   │   └── characters.js   # 8 rat characters (name, colors, accessory)
 │   ├── scenes/
@@ -46,6 +46,7 @@ RatRace/
 │   │   ├── MainMenuScene.js
 │   │   ├── SelectionScene.js          # character select (NOT "CharacterSelectionScene")
 │   │   ├── CarColorSelectionScene.js  # 8 car colors
+│   │   ├── TrackSelectionScene.js     # theme + difficulty picker (persists to localStorage 'ratrace_prefs')
 │   │   ├── GameScene.js               # main race: collisions, stats, race flow
 │   │   ├── UIScene.js                 # HUD overlay (launched, not started)
 │   │   └── RaceEndScene.js            # results + real stats
@@ -87,7 +88,8 @@ RACE_DISTANCE: 10000
 - Use `this.scene.time.now`, not `Date.now()`, for game-time cooldowns.
 - Don't add per-frame `console.log` calls — they were a real performance/noise problem and were deliberately stripped.
 - Racing mechanics belong in `Vehicle.js` (the shared base class), not in PlayerVehicle/AIVehicle. Add behavior differences through the hook methods (`approveLaneChange`, `applySpeedModifiers`, `onOffroadTick`) or constructor opts — do not re-duplicate logic into the subclasses.
-- Best race times persist in `localStorage` under `ratrace_best_times` (per character name), managed by RaceEndScene.
+- Best race times persist in `localStorage` under `ratrace_best_times` (per character name), managed by RaceEndScene. Track/difficulty preferences persist under `ratrace_prefs` (TrackSelectionScene).
+- `GameArt.createButton(scene, x, y, WIDTH, HEIGHT, label, opts, cb)` — forgetting width/height shifts every argument and throws inside scene.create(), which kills Phaser's game loop SILENTLY (frozen game, empty console). If the game freezes with no errors, suspect an exception inside a scene lifecycle method.
 - `music_race.wav` is a generated chiptune loop (played by GameScene.startRace, stopped in endRace); menu music is handled by MainMenuScene.
 
 ## Version Management
@@ -116,4 +118,4 @@ python3 -m http.server 8082 --bind 0.0.0.0   # accessible from iPad/mobile on LA
 - **Left arrow / swipe back**: brake (tactical — bait a rear-end collision for a 1.8x boost)
 
 ---
-*Last Updated: 2026-06-12 (v1.11.0)*
+*Last Updated: 2026-06-12 (v1.12.0)*

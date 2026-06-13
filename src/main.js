@@ -44,6 +44,7 @@ function initializeGame() {
         MainMenuScene,
         SelectionScene,
         CarColorSelectionScene,
+        TrackSelectionScene,
         GameScene,
         UIScene,
         RaceEndScene

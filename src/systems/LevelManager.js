@@ -9,9 +9,7 @@ class LevelManager {
     }
     
     setTheme(themeId) {
-        // Resolve the requested theme by id; GARDEN is the default/fallback.
-        // (Only GARDEN has bespoke scenery so far - other themes get its
-        // backdrop but use their own obstacle sets.)
+        // Resolve the requested theme by id; GARDEN is the default/fallback
         this.currentTheme = Object.values(LevelThemes).find(t => t.id === themeId) || LevelThemes.GARDEN;
         this.applyTheme();
     }
@@ -29,53 +27,62 @@ class LevelManager {
         // Parallax layers scrolled in update(): { containers: [a, b], factor, width }
         this.parallaxLayers = [];
 
-        // Sky gradient (drawn tall so vertical camera follow never reveals edges)
-        GameArt.ensureGradient(this.scene, 'sky-garden', 32, 512, [
-            [0, '#4FACE9'],
-            [0.55, '#8ED1F7'],
-            [1, '#D9F2FF']
-        ]);
-        const sky = this.scene.add.image(-2000, -400, 'sky-garden');
+        const id = this.currentTheme.id;
+        const p = this.currentTheme.palette;
+        const fullWidth = GameConfig.VIEWPORT.WIDTH * 6;
+
+        // Backdrop gradient: sky outdoors, wallpaper indoors
+        // (drawn tall so it covers above the visible area too)
+        GameArt.ensureGradient(this.scene, `sky-${id}`, 32, 512, p.sky);
+        const sky = this.scene.add.image(-2000, -400, `sky-${id}`);
         sky.setOrigin(0, 0);
-        sky.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 560); // covers up to y=160 (horizon)
+        sky.setDisplaySize(fullWidth, 560); // covers up to y=160 (horizon)
         sky.setDepth(-12);
 
-        // Sun with soft glow
-        const sunGlow = this.scene.add.circle(890, 58, 46, 0xFFF59D, 0.35);
-        const sun = this.scene.add.circle(890, 58, 30, 0xFFEE58);
-        sunGlow.setDepth(-11);
-        sun.setDepth(-11);
+        if (p.sun) {
+            const sunGlow = this.scene.add.circle(890, 58, 46, 0xFFF59D, 0.35);
+            const sun = this.scene.add.circle(890, 58, 30, 0xFFEE58);
+            sunGlow.setDepth(-11);
+            sun.setDepth(-11);
+        }
 
-        // Top grass bank between sky and the high offroad dirt
-        GameArt.ensureGradient(this.scene, 'grass-top', 32, 64, [
-            [0, '#94C946'],
-            [1, '#6FA834']
-        ]);
-        const grassTop = this.scene.add.image(-2000, 100, 'grass-top');
-        grassTop.setOrigin(0, 0);
-        grassTop.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 58);
-        grassTop.setDepth(-9);
+        // Horizon band between backdrop and the high shoulder
+        // (grass / ocean / wainscot paneling depending on theme)
+        GameArt.ensureGradient(this.scene, `band-${id}`, 32, 64, p.bandTop);
+        const bandTop = this.scene.add.image(-2000, 100, `band-${id}`);
+        bandTop.setOrigin(0, 0);
+        bandTop.setDisplaySize(fullWidth, 58);
+        bandTop.setDepth(-9);
 
-        // Bottom grass foreground below the low offroad dirt
-        GameArt.ensureGradient(this.scene, 'grass-bottom', 32, 64, [
-            [0, '#6FA834'],
-            [1, '#3F6B1D']
-        ]);
-        const grassBottom = this.scene.add.image(-2000, 616, 'grass-bottom');
-        grassBottom.setOrigin(0, 0);
-        grassBottom.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 360);
-        grassBottom.setDepth(-9);
+        // Foreground below the low shoulder (grass / sand / rug)
+        GameArt.ensureGradient(this.scene, `fg-${id}`, 32, 64, p.foreground);
+        const foreground = this.scene.add.image(-2000, 616, `fg-${id}`);
+        foreground.setOrigin(0, 0);
+        foreground.setDisplaySize(fullWidth, 360);
+        foreground.setDepth(-9);
 
-        // Distant parallax scenery: picket fence + hedge + flowers
-        this.createParallaxPair(w => this.buildFenceSegment(w), 1280, 0.25, -8.5);
-        this.createParallaxPair(w => this.buildHedgeSegment(w), 1280, 0.35, -8);
-        this.createParallaxPair(w => this.buildTopFlowerSegment(w), 1280, 0.45, -7.5);
+        // Theme-specific parallax scenery
+        if (id === 'beach') {
+            this.createParallaxPair(w => this.buildWaveSegment(w), 1280, 0.3, -8.5);
+            this.createParallaxPair(w => this.buildSailboatSegment(w), 1600, 0.15, -8.75);
+            this.createParallaxPair(w => this.buildPalmSegment(w), 1280, 0.4, -8);
+            this.createParallaxPair(w => this.buildShellSegment(w), 1400, 1.0, -7.5);
+        } else if (id === 'living_room') {
+            this.createParallaxPair(w => this.buildWallSegment(w), 1280, 0.2, -10);
+            this.createParallaxPair(w => this.buildWainscotSegment(w), 1280, 0.3, -8.5);
+            this.createParallaxPair(w => this.buildRugSegment(w), 1400, 1.0, -7.5);
+        } else {
+            // Garden (default): picket fence + hedge + flowers
+            this.createParallaxPair(w => this.buildFenceSegment(w), 1280, 0.25, -8.5);
+            this.createParallaxPair(w => this.buildHedgeSegment(w), 1280, 0.35, -8);
+            this.createParallaxPair(w => this.buildTopFlowerSegment(w), 1280, 0.45, -7.5);
+            this.createParallaxPair(w => this.buildBottomFlowerSegment(w), 1400, 1.0, -7.5);
+        }
 
-        // Foreground flowers/tufts on the bottom grass (move with the world)
-        this.createParallaxPair(w => this.buildBottomFlowerSegment(w), 1400, 1.0, -7.5);
-
-        // Drifting clouds (very slow parallax)
-        this.createParallaxPair(w => this.buildCloudSegment(w), 1600, 0.08, -10);
+        // Drifting clouds for outdoor themes (very slow parallax)
+        if (p.clouds) {
+            this.createParallaxPair(w => this.buildCloudSegment(w), 1600, 0.08, -10);
+        }
 
         // Create road/track
         this.createRoad();
@@ -154,18 +161,160 @@ class LevelManager {
         spots.forEach(([x, y, s]) => c.add(GameArt.createCloud(this.scene, x, y, s)));
         return c;
     }
+
+    // ---- Beach scenery -------------------------------------------------
+
+    buildWaveSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        // Rows of white foam arcs across the ocean band
+        [[112, 0.5], [130, 0.7], [148, 0.9]].forEach(([y, alpha], row) => {
+            for (let x = row * 30; x < width; x += 90) {
+                const g = this.scene.add.graphics({ x, y });
+                g.lineStyle(2.5, 0xFFFFFF, alpha);
+                g.beginPath();
+                g.arc(0, 0, 14, Math.PI, Math.PI * 2);
+                g.strokePath();
+                c.add(g);
+            }
+        });
+        return c;
+    }
+
+    buildSailboatSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        [200, 950].forEach((x, i) => {
+            const y = 112 + i * 6;
+            const hull = this.scene.add.triangle(x, y, -14, 0, 14, 0, 8, 7, 0x8D5524);
+            const sail = this.scene.add.triangle(x + 1, y - 11, 0, 10, 0, -10, 12, 8, 0xFFFFFF);
+            const mast = this.scene.add.rectangle(x, y - 10, 1.5, 20, 0x5D4037);
+            c.add([hull, mast, sail]);
+        });
+        return c;
+    }
+
+    buildPalmSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        for (let x = 90; x < width; x += 340) {
+            const lean = ((x * 13) % 10) - 5; // deterministic slight lean
+            const baseY = 156;
+            const trunk = this.scene.add.rectangle(x, baseY - 22, 7, 46, 0x8D6E63);
+            trunk.setRotation(lean * 0.02);
+            c.add(trunk);
+            // Fronds fan out from the crown
+            const crownX = x + lean;
+            const crownY = baseY - 46;
+            [[-22, -8], [-14, -16], [0, -19], [14, -16], [22, -8]].forEach(([fx, fy]) => {
+                const frond = this.scene.add.ellipse(crownX + fx, crownY + fy, 30, 9, 0x2E7D32);
+                frond.setRotation(Math.atan2(fy, fx) * 0.5);
+                c.add(frond);
+            });
+            c.add(this.scene.add.circle(crownX, crownY, 5, 0x6D4C41));
+        }
+        return c;
+    }
+
+    buildShellSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        for (let x = 50; x < width; x += 150) {
+            const y = 645 + ((x * 11) % 60);
+            if ((x * 7) % 3 === 0) {
+                // Starfish
+                const star = this.scene.add.star(x, y, 5, 3, 7, 0xFF8A65);
+                star.setRotation((x % 7) * 0.3);
+                c.add(star);
+            } else {
+                // Shell: small fan of arcs
+                const g = this.scene.add.graphics({ x, y });
+                g.fillStyle(0xFFF3E0, 1);
+                g.slice(0, 0, 8, Math.PI, Math.PI * 2);
+                g.fillPath();
+                g.lineStyle(1, 0xD7B894, 1);
+                g.lineBetween(0, 0, -5, -6);
+                g.lineBetween(0, 0, 0, -8);
+                g.lineBetween(0, 0, 5, -6);
+                c.add(g);
+            }
+        }
+        return c;
+    }
+
+    // ---- Living room scenery -------------------------------------------
+
+    buildWallSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        // Picture frames and a window on the wallpaper
+        for (let x = 130; x < width; x += 430) {
+            const frame = this.scene.add.rectangle(x, 52, 64, 48, 0x6D4C41);
+            const mat = this.scene.add.rectangle(x, 52, 52, 36, 0xF5F0E1);
+            const art = this.scene.add.rectangle(x, 52, 42, 26, 0x7E9E72);
+            const artSun = this.scene.add.circle(x + 12, 44, 5, 0xFFEE58);
+            c.add([frame, mat, art, artSun]);
+        }
+        for (let x = 345; x < width; x += 430) {
+            const sill = this.scene.add.rectangle(x, 86, 84, 6, 0xF5F0E1);
+            const glass = this.scene.add.rectangle(x, 50, 72, 66, 0x9ADCF7);
+            const frameV = this.scene.add.rectangle(x, 50, 5, 66, 0xF5F0E1);
+            const frameH = this.scene.add.rectangle(x, 50, 72, 5, 0xF5F0E1);
+            const border = this.scene.add.rectangle(x, 50, 72, 66);
+            border.setStrokeStyle(5, 0xF5F0E1);
+            c.add([glass, frameV, frameH, border, sill]);
+        }
+        return c;
+    }
+
+    buildWainscotSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        // Chair rail along the top of the paneling band
+        const rail = this.scene.add.rectangle(0, 103, width, 6, 0xFFFFFF);
+        rail.setOrigin(0, 0.5);
+        rail.setAlpha(0.9);
+        c.add(rail);
+        // Panel seams
+        for (let x = 0; x < width; x += 96) {
+            const seam = this.scene.add.rectangle(x, 131, 3, 50, 0xC4B59C);
+            c.add(seam);
+        }
+        // Baseboard where the wall meets the floor
+        const base = this.scene.add.rectangle(0, 155, width, 7, 0xEFE6D4);
+        base.setOrigin(0, 0.5);
+        c.add(base);
+        return c;
+    }
+
+    buildRugSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        // Rug motifs on the foreground carpet
+        for (let x = 70; x < width; x += 180) {
+            const y = 655 + ((x * 13) % 50);
+            const motif = this.scene.add.rectangle(x, y, 22, 22, 0xD8A657, 0.35);
+            motif.setRotation(Math.PI / 4);
+            const inner = this.scene.add.rectangle(x, y, 10, 10, 0xF0CC8B, 0.35);
+            inner.setRotation(Math.PI / 4);
+            c.add([motif, inner]);
+        }
+        // The occasional stray toy block
+        for (let x = 160; x < width; x += 520) {
+            const y = 680 + ((x * 7) % 30);
+            const block = this.scene.add.rectangle(x, y, 18, 18, 0xE53935);
+            block.setStrokeStyle(2, 0xB71C1C);
+            const letter = this.scene.add.text(x, y, 'A', {
+                fontSize: '11px', fontFamily: 'Arial Black', color: '#FFFFFF'
+            });
+            letter.setOrigin(0.5);
+            c.add([block, letter]);
+        }
+        return c;
+    }
     
     createRoad() {
         const roadY = GameConfig.VIEWPORT.HEIGHT / 2;
         const roadHeight = 320;
+        const id = this.currentTheme.id;
 
-        // Main road surface - subtle vertical gradient so it reads as asphalt, not a flat slab
-        GameArt.ensureGradient(this.scene, 'road-asphalt', 32, 256, [
-            [0, '#565A5E'],
-            [0.5, '#484C50'],
-            [1, '#3E4246']
-        ]);
-        const road = this.scene.add.image(-2000, roadY - roadHeight / 2, 'road-asphalt');
+        // Main racing surface - subtle vertical gradient (asphalt outdoors,
+        // hardwood floorboards in the living room)
+        GameArt.ensureGradient(this.scene, `road-${id}`, 32, 256, this.currentTheme.palette.road);
+        const road = this.scene.add.image(-2000, roadY - roadHeight / 2, `road-${id}`);
         road.setOrigin(0, 0);
         road.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, roadHeight);
         road.setDepth(-5);
@@ -234,25 +383,22 @@ class LevelManager {
     }
     
     createOffroadAreas(roadY, roadHeight) {
-        // Dirt shoulders get a gradient and are tall enough to touch both
-        // the road edge and the grass (no sky-colored gaps)
-        GameArt.ensureGradient(this.scene, 'dirt-high', 32, 80, [
-            [0, '#A18560'],
-            [1, '#7C654A']
-        ]);
-        GameArt.ensureGradient(this.scene, 'dirt-low', 32, 80, [
-            [0, '#8A7050'],
-            [1, '#6E5840']
-        ]);
+        const id = this.currentTheme.id;
+        const p = this.currentTheme.palette;
 
-        // High offroad area (above top lane): from grass (y=158) to road edge (y=224)
-        const offroadHigh = this.scene.add.image(-2000, 156, 'dirt-high');
+        // Shoulders (dirt / sand / rug border) get a gradient and are tall
+        // enough to touch both the road edge and the horizon band (no gaps)
+        GameArt.ensureGradient(this.scene, `shoulder-high-${id}`, 32, 80, p.dirtHigh);
+        GameArt.ensureGradient(this.scene, `shoulder-low-${id}`, 32, 80, p.dirtLow);
+
+        // High offroad area (above top lane): from band (y=158) to road edge (y=224)
+        const offroadHigh = this.scene.add.image(-2000, 156, `shoulder-high-${id}`);
         offroadHigh.setOrigin(0, 0);
         offroadHigh.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 70);
         offroadHigh.setDepth(-6);
 
-        // Low offroad area (below bottom lane): from road edge (y=544) to grass (y=616)
-        const offroadLow = this.scene.add.image(-2000, 546, 'dirt-low');
+        // Low offroad area (below bottom lane): from road edge (y=544) to foreground (y=616)
+        const offroadLow = this.scene.add.image(-2000, 546, `shoulder-low-${id}`);
         offroadLow.setOrigin(0, 0);
         offroadLow.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 72);
         offroadLow.setDepth(-6);
@@ -274,7 +420,7 @@ class LevelManager {
                     y + Phaser.Math.Between(-22, 22), // Random Y within offroad area
                     Phaser.Math.Between(6, 12),
                     Phaser.Math.Between(3, 6), // Flattened pebble/rut shapes
-                    0x55432F // Dark brown
+                    this.currentTheme.palette.spotColor
                 );
                 spot.setAlpha(0.5);
                 spot.setDepth(-5);

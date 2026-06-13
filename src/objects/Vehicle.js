@@ -513,12 +513,15 @@ class Vehicle extends Phaser.GameObjects.Container {
     // --------------------------------------------------------------- effects
 
     showDustEffect() {
+        // Kicked-up offroad debris matches the surface (dirt/sand/carpet lint)
+        const lm = this.scene.levelManager;
+        const dustColor = (lm && lm.currentTheme) ? lm.currentTheme.palette.dustColor : 0x654321;
         for (let i = 0; i < 2; i++) {
             const dust = this.scene.add.circle(
                 this.x - 40 - (i * 15),
                 this.y + Phaser.Math.Between(-8, 8),
                 Phaser.Math.Between(3, 6),
-                0x654321
+                dustColor
             );
             dust.setAlpha(0.8);
             dust.setDepth(1);
