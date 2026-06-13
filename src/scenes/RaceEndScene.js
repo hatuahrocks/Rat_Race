@@ -7,6 +7,7 @@ class RaceEndScene extends Phaser.Scene {
         this.position = data.position || 1;
         this.totalRacers = data.totalRacers || 4;
         this.character = data.character || Characters[0];
+        this.stats = data.stats || null;
     }
     
     create() {
@@ -15,6 +16,7 @@ class RaceEndScene extends Phaser.Scene {
         
         // Set background
         this.cameras.main.setBackgroundColor('#2C3E50');
+        GameArt.createMenuBackdrop(this, 'menu-night', '#1B2735', '#3E5871');
         
         // Add confetti effect if winner
         if (this.position === 1) {
@@ -91,19 +93,17 @@ class RaceEndScene extends Phaser.Scene {
         // Get the selected car color from registry
         const selectedCarColor = this.registry.get('selectedCarColor') || { color: 0x333333, accent: 0x444444 };
 
-        // Create vehicle with selected colors
-        const car = this.add.rectangle(0, 20, 80, 35, selectedCarColor.color);
-        const carFront = this.add.rectangle(20, 18, 25, 25, selectedCarColor.accent);
-        const carBack = this.add.rectangle(-20, 18, 20, 25, selectedCarColor.accent);
-        const wheel1 = this.add.circle(-25, 35, 12, 0x222222);
-        const wheel2 = this.add.circle(25, 35, 12, 0x222222);
-        
+        // Ground shadow + the real in-game car art, enlarged
+        const shadow = this.add.ellipse(3, 42, 90, 18, 0x000000, 0.3);
+        const car = GameArt.createCar(this, selectedCarColor);
+        car.setScale(1.55);
+
         // Create detailed rat using the same system as in-game
         const detailedRat = this.paletteSwap.createRatSprite(this.character);
         detailedRat.setScale(1.5); // Make it larger for the finish screen
         detailedRat.y = -10; // Position it in the car
-        
-        container.add([car, carFront, carBack, wheel1, wheel2, detailedRat]);
+
+        container.add([shadow, car, detailedRat]);
         
         // Add animation
         this.tweens.add({
@@ -201,14 +201,14 @@ class RaceEndScene extends Phaser.Scene {
         const height = this.cameras.main.height;
         
         // Play Again button
-        const playAgainBtn = this.createButton(width / 2 - 120, height - 100, 'PLAY AGAIN', () => {
+        const playAgainBtn = this.createButton(width / 2 - 130, height - 70, 'PLAY AGAIN', () => {
             console.log('Play Again clicked');
             this.scene.start('GameScene');
             this.scene.launch('UIScene');
         });
 
         // Menu button
-        const menuBtn = this.createButton(width / 2 + 120, height - 100, 'MAIN MENU', () => {
+        const menuBtn = this.createButton(width / 2 + 130, height - 70, 'MAIN MENU', () => {
             console.log('Main Menu clicked from RaceEndScene');
             // Stop UI scene if it's running
             this.scene.stop('UIScene');
@@ -216,52 +216,17 @@ class RaceEndScene extends Phaser.Scene {
             this.scene.start('MainMenuScene');
         });
     }
-    
+
     createButton(x, y, text, callback) {
-        const button = this.add.container(x, y);
-        
-        const bg = this.add.rectangle(0, 0, 200, 50, 0x4444FF);
-        bg.setStrokeStyle(3, 0x000000);
-        bg.setInteractive({ useHandCursor: true });
-        
-        const label = this.add.text(0, 0, text, {
-            fontSize: '20px',
-            fontFamily: 'Arial',
-            color: '#FFFFFF',
-            fontStyle: 'bold'
-        });
-        label.setOrigin(0.5);
-        
-        button.add([bg, label]);
-        
-        bg.on('pointerdown', () => {
-            this.tweens.add({
-                targets: button,
-                scaleX: 0.9,
-                scaleY: 0.9,
-                duration: 100,
-                yoyo: true,
-                onComplete: callback
-            });
-        });
-        
-        bg.on('pointerover', () => {
-            bg.setFillStyle(0x6666FF);
-        });
-        
-        bg.on('pointerout', () => {
-            bg.setFillStyle(0x4444FF);
-        });
-        
-        return button;
+        return GameArt.createButton(this, x, y, 220, 54, text, { color: 0x3D6DEB, fontSize: 20 }, callback);
     }
     
     createStats() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // Simple stats display
-        const statsContainer = this.add.container(width / 2, height - 200);
+        // Simple stats display (kept above the buttons)
+        const statsContainer = this.add.container(width / 2, height - 270);
         
         const statsText = this.add.text(0, 0, 'Race Statistics', {
             fontSize: '24px',
@@ -271,12 +236,55 @@ class RaceEndScene extends Phaser.Scene {
         });
         statsText.setOrigin(0.5);
         
-        const stats = [
-            'Time: ' + Phaser.Math.Between(60, 120) + ' seconds',
-            'Top Speed: ' + Phaser.Math.Between(180, 250) + ' mph',
-            'Boosts Used: ' + Phaser.Math.Between(5, 15),
-            'Perfect Runs: ' + Phaser.Math.Between(0, 3)
-        ];
+        // Real values tracked during the race (px/s scaled to a fun mph-style number)
+        const s = this.stats;
+        let stats = [];
+        let isNewRecord = false;
+
+        if (s) {
+            // Personal best per character, persisted in localStorage
+            const bestTimes = this.loadBestTimes();
+            const previousBest = bestTimes[this.character.name];
+            if (previousBest === undefined || s.time < previousBest) {
+                isNewRecord = true;
+                bestTimes[this.character.name] = Math.round(s.time * 10) / 10;
+                this.saveBestTimes(bestTimes);
+            }
+
+            const timeLine = 'Time: ' + s.time.toFixed(1) + 's' +
+                (isNewRecord ? '' : '   (best: ' + previousBest.toFixed(1) + 's)');
+
+            stats = [
+                timeLine,
+                'Top Speed: ' + Math.round(s.topSpeed / 3.5) + ' mph',
+                'Boosts Used: ' + s.boostsUsed,
+                'Strawberries: ' + s.strawberries,
+                'Obstacles Hit: ' + s.obstaclesHit
+            ];
+        }
+
+        // Celebrate a new personal best
+        if (isNewRecord) {
+            const record = this.add.text(0, -32, 'NEW RECORD!', {
+                fontSize: '22px',
+                fontFamily: 'Arial Black',
+                color: '#FFD700',
+                stroke: '#000000',
+                strokeThickness: 4
+            });
+            record.setOrigin(0.5);
+            statsContainer.add(record);
+
+            this.tweens.add({
+                targets: record,
+                scaleX: 1.15,
+                scaleY: 1.15,
+                duration: 400,
+                ease: 'Sine.easeInOut',
+                yoyo: true,
+                repeat: -1
+            });
+        }
         
         stats.forEach((stat, index) => {
             const statText = this.add.text(0, 30 + (index * 25), stat, {
@@ -287,8 +295,24 @@ class RaceEndScene extends Phaser.Scene {
             statText.setOrigin(0.5);
             statsContainer.add(statText);
         });
-        
+
         statsContainer.add(statsText);
+    }
+
+    loadBestTimes() {
+        try {
+            return JSON.parse(localStorage.getItem('ratrace_best_times')) || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    saveBestTimes(times) {
+        try {
+            localStorage.setItem('ratrace_best_times', JSON.stringify(times));
+        } catch (e) {
+            // Private browsing / storage disabled - records just aren't kept
+        }
     }
     
     createConfetti() {

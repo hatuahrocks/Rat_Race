@@ -37,10 +37,10 @@ class GameScene extends Phaser.Scene {
         
         // Get player's selected car color and character
         const selectedCarColor = this.registry.get('selectedCarColor') || { color: 0x333333, accent: 0x444444 };
+        this.playerColor = selectedCarColor.color;
 
         // Create player vehicle - start behind start line in lane 1
         this.player = new PlayerVehicle(this, 50, GameConfig.LANE_Y_POSITIONS[1], selectedCharacter);
-        console.log(`Player created in lane 1 at Y: ${GameConfig.LANE_Y_POSITIONS[1]}`);
 
         // Create AI opponents - ensure unique lanes, colors, and characters
         this.aiVehicles = [];
@@ -51,6 +51,9 @@ class GameScene extends Phaser.Scene {
         this.gameEnded = false;
         this.scrollSpeed = 0;
         this.countdown = 3;
+
+        // Race statistics (finalized in endRace)
+        this.raceStats = { startTime: 0, topSpeed: 0, strawberries: 0 };
         
         // Create countdown
         this.createCountdown();
@@ -58,9 +61,9 @@ class GameScene extends Phaser.Scene {
         // Setup input events
         this.setupInputEvents();
         
-        // Create camera follow
-        this.cameras.main.startFollow(this.player, false, 0.1, 0.1);
-        this.cameras.main.setFollowOffset(-200, 0);
+        // Fixed camera: the world scrolls past it, and the track never
+        // shifts vertically when the player changes lanes or goes offroad
+        this.cameras.main.setScroll(-262, 0);
     }
 
     createUniqueAIOpponents(playerCharacter, playerCarColor) {
@@ -90,7 +93,6 @@ class GameScene extends Phaser.Scene {
         const availableLanes = [0, 2, 3];
         const maxAI = Math.min(GameConfig.AI.COUNT, availableLanes.length, aiCarColors.length, aiCharacters.length);
 
-        console.log(`Creating ${maxAI} AI opponents with unique colors and characters`);
 
         // Shuffle arrays to get random selection
         const shuffledCarColors = this.shuffleArray([...aiCarColors]);
@@ -104,7 +106,6 @@ class GameScene extends Phaser.Scene {
             // Stagger X positions slightly to avoid perfect alignment
             const staggerX = 50 + Phaser.Math.Between(-10, 10);
 
-            console.log(`AI ${i}: Lane ${lane} at Y: ${GameConfig.LANE_Y_POSITIONS[lane]}, Character: ${aiCharacter.name}, Color: ${aiCarColor.name}`);
 
             const ai = new AIVehicle(
                 this,
@@ -216,7 +217,6 @@ class GameScene extends Phaser.Scene {
                     const distance = Phaser.Math.Distance.Between(vehicle1.x, vehicle1.y, vehicle2.x, vehicle2.y);
 
                     if ((v1Braking || v2Braking) && distance < 80) {
-                        console.log(`NEAR MISS: ${vehicle1.constructor.name}(${v1Braking ? 'BRAKING' : 'normal'}, speed:${speed1.toFixed(1)}) vs ${vehicle2.constructor.name}(${v2Braking ? 'BRAKING' : 'normal'}, speed:${speed2.toFixed(1)}) - Distance:${distance.toFixed(1)}`);
                     }
                 }
             }
@@ -258,9 +258,6 @@ class GameScene extends Phaser.Scene {
             const speed1 = Math.sqrt(vel1.x * vel1.x + vel1.y * vel1.y);
             const speed2 = Math.sqrt(vel2.x * vel2.x + vel2.y * vel2.y);
 
-            console.log(`COLLISION (${type}): Distance:${distance.toFixed(1)}`);
-            console.log(`Vehicles: ${vehicle1.constructor.name}(${v1Braking ? 'BRAKING' : 'normal'}, speed:${speed1.toFixed(1)}) vs ${vehicle2.constructor.name}(${v2Braking ? 'BRAKING' : 'normal'}, speed:${speed2.toFixed(1)})`);
-            console.log(`Positions: V1(${vehicle1.x.toFixed(1)},${vehicle1.y.toFixed(1)}) V2(${vehicle2.x.toFixed(1)},${vehicle2.y.toFixed(1)})`);
 
             this.handleVehicleCollision(vehicle1, vehicle2);
             this.collisionCooldowns[collisionKey] = currentTime;
@@ -271,7 +268,6 @@ class GameScene extends Phaser.Scene {
         const xDistance = Math.abs(vehicle1.x - vehicle2.x);
         const yDistance = Math.abs(vehicle1.y - vehicle2.y);
         
-        console.log('Collision detected - xDist:', xDistance, 'yDist:', yDistance);
         
         // Determine collision type based on relative positions
         // More lenient rear-end detection, especially when braking
@@ -286,17 +282,13 @@ class GameScene extends Phaser.Scene {
         if (yDistance < yThreshold && xDistance < xThreshold) {
             // Same lane collision - rear-end collision
 
-            console.log(`Rear-end collision: ${backVehicle.constructor.name} hitting ${frontVehicle.constructor.name} ${frontIsBraking ? '(BRAKING!)' : ''}`);
-            console.log(`Thresholds used: Y<${yThreshold}, X<${xThreshold} (actual: Y=${yDistance}, X=${xDistance})`);
             
             // Block the back vehicle and boost the front
             if (backVehicle.blockVehicle) {
                 backVehicle.blockVehicle(frontVehicle);
-                console.log('Blocked', backVehicle.constructor.name);
             }
             if (frontVehicle.receiveBoostFromCollision) {
                 frontVehicle.receiveBoostFromCollision();
-                console.log('Boosted', frontVehicle.constructor.name);
             }
 
             // Play bump sound effects for rear-end collision (only if player is involved)
@@ -306,10 +298,8 @@ class GameScene extends Phaser.Scene {
             }
         } else if (xDistance < 40 && yDistance >= 20) { // Improved side collision detection
             // Side collision - lane pushing
-            console.log('Side collision - lane pushing, xDist:', xDistance, 'yDist:', yDistance);
             this.handleLanePush(vehicle1, vehicle2);
         } else {
-            console.log('Collision type not determined - xDist:', xDistance, 'yDist:', yDistance);
         }
     }
     
@@ -341,19 +331,15 @@ class GameScene extends Phaser.Scene {
         const currentExtendedLane = vehicle.extendedLane !== undefined ? vehicle.extendedLane : vehicle.currentLane;
         const newExtendedLane = currentExtendedLane + direction;
         
-        console.log(`PUSH ATTEMPT: ${vehicle.constructor.name} from lane ${currentExtendedLane} to ${newExtendedLane} (direction: ${direction})`);
         
         // Check bounds for extended lane system (-1 to 4)
         if (newExtendedLane < -1) {
-            console.log('Push blocked - would go beyond high offroad');
             return;
         } else if (newExtendedLane > 4) {
-            console.log('Push blocked - would go beyond low offroad');
             return;
         } else {
             // Valid lane change in extended system
             if (vehicle.changeLane) {
-                console.log(`PUSHING ${vehicle.constructor.name} to extended lane ${newExtendedLane}`);
                 vehicle.changeLane(direction);
 
                 // Apply push slowdown effect
@@ -371,9 +357,7 @@ class GameScene extends Phaser.Scene {
                     this.audioManager.playSoundWithCooldown('push', 800); // 800ms cooldown
                 }
 
-                console.log('Vehicle pushed to new lane with exclamation effect and sound');
             } else {
-                console.log('Push failed - vehicle has no changeLane method');
             }
         }
     }
@@ -428,6 +412,12 @@ class GameScene extends Phaser.Scene {
     startRace() {
         this.gameStarted = true;
         this.scrollSpeed = GameConfig.BASE_FORWARD_SPEED;
+        this.raceStats.startTime = this.time.now;
+
+        // Race music (looped chiptune; stopped in endRace)
+        if (this.audioManager) {
+            this.audioManager.playMusic('music_race', true);
+        }
     }
     
     setupInputEvents() {
@@ -508,7 +498,7 @@ class GameScene extends Phaser.Scene {
             const aiCollision = this.obstacleSpawner.checkCollision(ai);
             if (aiCollision) {
                 if (aiCollision.type === 'obstacle') {
-                    ai.hitObstacle();
+                    ai.hitObstacle(aiCollision.object);
                 } else if (aiCollision.type === 'ramp') {
                     ai.hitRamp();
                 }
@@ -535,6 +525,23 @@ class GameScene extends Phaser.Scene {
             uiScene.updateBoostButtons(boostAvailable);
             uiScene.updateProgress(this.levelManager.raceProgress);
             uiScene.updatePosition(this.calculatePosition());
+            uiScene.updateSpeed(this.player.currentSpeed);
+            uiScene.updateDistance(this.levelManager.distanceTraveled / 10); // ~10px per meter
+
+            // Live rival markers along the progress bar
+            uiScene.updateRacerMarkers([
+                { progress: this.levelManager.raceProgress, color: this.playerColor, isPlayer: true },
+                ...this.aiVehicles.map(ai => ({
+                    progress: Math.min(ai.distanceTraveled / GameConfig.RACE_DISTANCE, 1),
+                    color: ai.carColor ? ai.carColor.color : 0x888888,
+                    isPlayer: false
+                }))
+            ]);
+        }
+
+        // Track top speed for the results screen
+        if (this.player.currentSpeed > this.raceStats.topSpeed) {
+            this.raceStats.topSpeed = this.player.currentSpeed;
         }
         
         // Check for race completion
@@ -559,32 +566,48 @@ class GameScene extends Phaser.Scene {
     endRace() {
         this.gameEnded = true;
         this.scrollSpeed = 0;
-        
+
+        // Stop race music
+        if (this.audioManager) {
+            this.audioManager.stopMusic();
+        }
+
         // Stop all vehicles
         this.player.stopBoost();
         
         // Calculate final position
         const finalPosition = this.calculatePosition();
         
+        // Real race statistics for the results screen
+        const stats = {
+            time: (this.time.now - this.raceStats.startTime) / 1000,
+            topSpeed: this.raceStats.topSpeed,
+            boostsUsed: this.player.boostsUsed,
+            strawberries: this.raceStats.strawberries,
+            obstaclesHit: this.player.obstaclesHit
+        };
+
         // Transition to race end scene
         this.time.delayedCall(1000, () => {
             this.scene.stop('UIScene');
-            this.scene.start('RaceEndScene', { 
+            this.scene.start('RaceEndScene', {
                 position: finalPosition,
                 totalRacers: GameConfig.AI.COUNT + 1,
-                character: this.registry.get('selectedCharacter')
+                character: this.registry.get('selectedCharacter'),
+                stats: stats
             });
         });
     }
     
     shutdown() {
-        // Cleanup
+        // Cleanup. NOTE: audioManager is shared via the registry across all
+        // scenes - destroying it here would silence the rest of the session.
         this.inputManager.destroy();
-        this.audioManager.destroy();
         this.obstacleSpawner.destroy();
         this.events.off('laneChangeUp');
         this.events.off('laneChangeDown');
         this.events.off('boostTap');
+        this.events.off('brake');
     }
 
     collectStrawberry(strawberry, vehicle) {
@@ -602,9 +625,9 @@ class GameScene extends Phaser.Scene {
             );
 
             // Give immediate strawberry boost effect (stackable with regular boost)
-            vehicle.strawberryBoostTime = 2000; // 2 seconds of 40% speed boost
+            vehicle.strawberryBoostTime = 2000; // 2 seconds of +70% speed boost
+            this.raceStats.strawberries++;
 
-            console.log(`Player collected strawberry! Boost meter: ${vehicle.boostMeter.toFixed(1)}s, Strawberry boost for 2s`);
 
             // Play boost whoosh sound for speed boost
             if (this.audioManager) {
@@ -613,7 +636,6 @@ class GameScene extends Phaser.Scene {
 
             // If already boosting, extend the boost
             if (vehicle.isBoosting) {
-                console.log('Extended boost duration!');
             }
         } else {
             // AI gets boost energy AND immediate speed boost
@@ -625,7 +647,6 @@ class GameScene extends Phaser.Scene {
             // Give immediate strawberry boost effect for AI too
             vehicle.strawberryBoostTime = 2000; // 2 seconds of 40% speed boost
 
-            console.log(`AI collected strawberry! Boost meter: ${vehicle.boostMeter.toFixed(1)}s, Strawberry boost for 2s`);
         }
 
         // Play collection sound effect (only for player, not AI)

@@ -6,7 +6,10 @@ class UIScene extends Phaser.Scene {
     create() {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
-        
+
+        // Reset per-race state (scene instances are reused between races)
+        this.racerMarkers = null;
+
         // Create UI container
         this.uiContainer = this.add.container(0, 0);
         
@@ -15,15 +18,15 @@ class UIScene extends Phaser.Scene {
         const meterX = width - (meterWidth / 2) - 20; // 20px margin from edge
         const meterY = height - 50;
         
-        // Boost meter background
-        const boostBg = this.add.rectangle(meterX, meterY, meterWidth, 30, 0x333333);
-        boostBg.setOrigin(0.5);
-        boostBg.setStrokeStyle(3, 0x000000);
-        
+        // Boost meter background (rounded)
+        const boostBg = GameArt.createPanel(this, meterX - meterWidth / 2, meterY - 15, meterWidth, 30, {
+            radius: 12, color: 0x000000, alpha: 0.5, strokeColor: 0x000000, strokeAlpha: 0.8, strokeWidth: 3
+        });
+
         // Boost meter fill
-        this.boostFill = this.add.rectangle(meterX, meterY, meterWidth - 4, 26, 0x00FF00);
+        this.boostFill = this.add.rectangle(meterX, meterY, meterWidth - 8, 22, 0x00FF00);
         this.boostFill.setOrigin(0.5);
-        this.boostMeterMaxWidth = meterWidth - 4;
+        this.boostMeterMaxWidth = meterWidth - 8;
         
         // Boost label
         const labelSize = Math.min(20, width * 0.025); // Responsive font size
@@ -39,22 +42,26 @@ class UIScene extends Phaser.Scene {
         // Create boost button for touch controls
         this.createBoostButton();
         
-        // Responsive progress bar
+        // Responsive progress bar (rounded track)
         const progressWidth = Math.min(600, width * 0.8); // Max 600px or 80% of screen width
-        const progressBg = this.add.rectangle(width / 2, 30, progressWidth, 20, 0x333333);
-        progressBg.setStrokeStyle(2, 0x000000);
-        
-        this.progressFill = this.add.rectangle(width / 2 - (progressWidth / 2) + 1, 30, 2, 16, 0xFFD700);
+        const progressBg = GameArt.createPanel(this, width / 2 - progressWidth / 2, 18, progressWidth, 24, {
+            radius: 12, color: 0x000000, alpha: 0.5, strokeColor: 0x000000, strokeAlpha: 0.8, strokeWidth: 3
+        });
+
+        this.progressFill = this.add.rectangle(width / 2 - (progressWidth / 2) + 4, 30, 2, 16, 0xFFD700);
         this.progressFill.setOrigin(0, 0.5);
-        this.progressMaxWidth = progressWidth - 2;
-        
+        this.progressMaxWidth = progressWidth - 8;
+
         // Progress markers (responsive spacing)
         const markerCount = 10;
-        for (let i = 0; i <= markerCount; i++) {
+        for (let i = 1; i < markerCount; i++) {
             const x = (width / 2 - (progressWidth / 2)) + (i * (progressWidth / markerCount));
-            const marker = this.add.rectangle(x, 30, 2, 20, 0x666666);
+            const marker = this.add.rectangle(x, 30, 2, 14, 0xFFFFFF, 0.25);
         }
-        
+
+        // Translucent panel behind position/speed/distance readouts
+        const hudPanel = GameArt.createPanel(this, 18, 42, 235, 122, { radius: 14, alpha: 0.35 });
+
         // Responsive position indicator
         const positionSize = Math.min(48, width * 0.06); // Responsive font size
         this.positionText = this.add.text(30, 50, '1st', {
@@ -89,7 +96,7 @@ class UIScene extends Phaser.Scene {
         this.uiContainer.add([
             boostBg, this.boostFill, boostLabel,
             progressBg, this.progressFill,
-            this.positionText, this.speedText, this.distanceText
+            hudPanel, this.positionText, this.speedText, this.distanceText
         ]);
     }
     
@@ -269,6 +276,28 @@ class UIScene extends Phaser.Scene {
     
     updateProgress(percentage) {
         this.progressFill.width = this.progressMaxWidth * percentage;
+    }
+
+    // Colored dots on the progress bar showing where every racer is.
+    // racers: [{ progress: 0..1, color: 0xRRGGBB, isPlayer: bool }, ...]
+    updateRacerMarkers(racers) {
+        if (!this.racerMarkers) {
+            this.racerMarkers = racers.map(r => {
+                const dot = this.add.circle(0, 30, r.isPlayer ? 8 : 5.5, r.color);
+                dot.setStrokeStyle(2, r.isPlayer ? 0xFFFFFF : 0x222222);
+                this.uiContainer.add(dot);
+                return dot;
+            });
+            // Draw the player's dot on top of rivals
+            this.uiContainer.bringToTop(this.racerMarkers[0]);
+        }
+
+        racers.forEach((r, i) => {
+            const marker = this.racerMarkers[i];
+            if (!marker) return;
+            const clamped = Math.min(1, Math.max(0, r.progress));
+            marker.x = this.progressFill.x + this.progressMaxWidth * clamped;
+        });
     }
     
     updatePosition(position) {

@@ -5,8 +5,6 @@ class AudioManager {
         this.musicVolume = 0.5;
         this.sfxVolume = 0.7;
         this.currentMusic = null;
-        this.currentEngine = null;
-        this.engineTransitionTween = null;
         this.soundCooldowns = {}; // Track when sounds are playing
     }
     
@@ -27,21 +25,13 @@ class AudioManager {
         this.scene.load.audio('bump2', 'assets/audio/bump2.mp3');
 
         this.scene.load.audio('boost', 'assets/audio/boost.mp3');
-
-        // These files don't exist yet - commented out to prevent 404 errors:
-        // this.scene.load.audio('countdown', 'assets/audio/countdown.mp3');
-        // this.scene.load.audio('engine_idle', 'assets/audio/engine_idle.mp3');
-        // this.scene.load.audio('engine_mid', 'assets/audio/engine_mid.mp3');
-        // this.scene.load.audio('engine_high', 'assets/audio/engine_high.mp3');
-        // this.scene.load.audio('engine_drag', 'assets/audio/engine_drag.mp3');
-        // this.scene.load.audio('music_race', 'assets/audio/music_race.mp3');
+        this.scene.load.audio('music_race', 'assets/audio/music_race.wav');
     }
     
     create() {
         // Initialize sound objects
         const soundKeys = [
-            'countdown', 'bump', 'ramp', 'push', 'boost', 'powerup',
-            'engine_idle', 'engine_mid', 'engine_high', 'engine_drag',
+            'bump', 'ramp', 'push', 'boost', 'powerup',
             'music_menu', 'music_race', 'brake', 'manualboost', 'bump2'
         ];
 
@@ -116,82 +106,8 @@ class AudioManager {
         this.sfxVolume = Phaser.Math.Clamp(volume, 0, 1);
     }
     
-    // Engine sound management
-    playEngineSound(engineKey, loop = true, volume = null) {
-        if (this.currentEngine) {
-            this.currentEngine.stop();
-        }
-
-        if (this.sounds[engineKey]) {
-            this.currentEngine = this.sounds[engineKey];
-            const vol = volume || this.sfxVolume * 0.6; // Engine sounds slightly quieter
-            this.currentEngine.play({
-                volume: vol,
-                loop: loop
-            });
-        }
-    }
-
-    transitionEngineSound(newEngineKey, duration = 0.3) {
-        if (this.engineTransitionTween) {
-            this.engineTransitionTween.stop();
-        }
-
-        const oldEngine = this.currentEngine;
-        if (oldEngine && this.sounds[newEngineKey]) {
-            // Fade out old engine
-            this.engineTransitionTween = this.scene.tweens.add({
-                targets: oldEngine,
-                volume: 0,
-                duration: duration * 1000,
-                onComplete: () => {
-                    oldEngine.stop();
-                    this.playEngineSound(newEngineKey);
-
-                    // Fade in new engine
-                    if (this.currentEngine) {
-                        this.currentEngine.setVolume(0);
-                        this.scene.tweens.add({
-                            targets: this.currentEngine,
-                            volume: this.sfxVolume * 0.6,
-                            duration: duration * 1000
-                        });
-                    }
-                }
-            });
-        } else {
-            this.playEngineSound(newEngineKey);
-        }
-    }
-
-    stopEngineSound() {
-        if (this.currentEngine) {
-            this.currentEngine.stop();
-            this.currentEngine = null;
-        }
-        if (this.engineTransitionTween) {
-            this.engineTransitionTween.stop();
-            this.engineTransitionTween = null;
-        }
-    }
-
-    // Countdown sequence
-    playCountdown(callback = null) {
-        if (this.sounds['countdown']) {
-            this.sounds['countdown'].play({ volume: this.sfxVolume });
-            if (callback) {
-                // Assuming countdown is about 4 seconds
-                this.scene.time.delayedCall(4000, callback);
-            }
-        } else if (callback) {
-            // Fallback if no countdown sound
-            callback();
-        }
-    }
-
     destroy() {
         this.stopMusic();
-        this.stopEngineSound();
         for (let key in this.sounds) {
             if (this.sounds[key]) {
                 this.sounds[key].destroy();

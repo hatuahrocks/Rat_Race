@@ -49,12 +49,13 @@ class CarColorSelectionScene extends Phaser.Scene {
         const height = this.cameras.main.height;
         
         this.cameras.main.setBackgroundColor('#2C3E50');
-        
+        GameArt.createMenuBackdrop(this, 'menu-slate', '#243B55', '#3E6B73');
+
         // Get selected character from previous scene
         this.selectedCharacter = this.registry.get('selectedCharacter') || Characters[0];
-        
+
         // Title
-        const title = this.add.text(width / 2, 80, 'SELECT YOUR CAR COLOR', {
+        const title = this.add.text(width / 2, 38, 'SELECT YOUR CAR COLOR', {
             fontSize: '32px',
             fontFamily: 'Arial Black',
             color: '#FFD700',
@@ -63,9 +64,9 @@ class CarColorSelectionScene extends Phaser.Scene {
         });
         title.setOrigin(0.5);
         title.setDepth(1000);
-        
+
         // Show selected character info
-        const charInfo = this.add.text(width / 2, 120, `Driver: ${this.selectedCharacter.name}`, {
+        const charInfo = this.add.text(width / 2, 80, `Driver: ${this.selectedCharacter.name}`, {
             fontSize: '18px',
             fontFamily: 'Arial',
             color: '#FFFFFF'
@@ -106,9 +107,9 @@ class CarColorSelectionScene extends Phaser.Scene {
         // Calculate grid dimensions
         const gridWidth = (cols * cardWidth) + ((cols - 1) * spacing);
         
-        // Center the grid
+        // Center the grid (cards are 120 tall; top row starts below the driver label)
         const startX = (width - gridWidth) / 2 + (cardWidth / 2);
-        const startY = 180;
+        const startY = 190;
         
         this.carColors.forEach((colorData, index) => {
             const col = index % cols;
@@ -126,38 +127,34 @@ class CarColorSelectionScene extends Phaser.Scene {
     
     createColorCard(x, y, colorData, index, cardWidth = 160, cardHeight = 120) {
         const card = this.add.container(x, y);
-        
+
+        // Soft drop shadow behind the card
+        const cardShadow = this.add.rectangle(5, 7, cardWidth, cardHeight, 0x000000, 0.3);
+
         // Card background
         const bg = this.add.rectangle(0, 0, cardWidth, cardHeight, 0xFFFFFF);
         bg.setStrokeStyle(4, 0x000000);
         bg.setInteractive({ useHandCursor: true });
-        
+
         // Selection highlight
         const highlight = this.add.rectangle(0, 0, cardWidth + 10, cardHeight + 10, 0xFFD700);
         highlight.setStrokeStyle(6, 0xFFD700);
         highlight.setVisible(false);
         highlight.setAlpha(0.3);
         card.highlight = highlight;
-        
-        // Preview car
-        const carPreview = this.add.container(0, -10);
-        
-        // Car body
-        const carBody = this.add.rectangle(0, 0, 70, 25, colorData.color);
-        const carFront = this.add.rectangle(25, -2, 20, 20, colorData.accent);
-        const carBack = this.add.rectangle(-25, -2, 15, 20, colorData.accent);
-        
-        // Wheels
-        const wheelFront = this.add.circle(20, 15, 8, 0x222222);
-        const wheelBack = this.add.circle(-20, 15, 8, 0x222222);
-        
+
+        // Preview car (the real in-game car art in this color)
+        const carPreview = this.add.container(0, -14);
+        const car = GameArt.createCar(this, colorData);
+        car.setScale(1.05);
+
         // Character in car
         const ratSprite = this.createMiniRat(this.selectedCharacter);
-        ratSprite.setScale(0.4);
-        ratSprite.y = -8;
-        
-        carPreview.add([carBack, carBody, carFront, wheelFront, wheelBack, ratSprite]);
-        
+        ratSprite.setScale(0.55);
+        ratSprite.y = -3;
+
+        carPreview.add([car, ratSprite]);
+
         // Color name
         const name = this.add.text(0, 35, colorData.name, {
             fontSize: '14px',
@@ -167,10 +164,11 @@ class CarColorSelectionScene extends Phaser.Scene {
             align: 'center'
         });
         name.setOrigin(0.5);
-        
-        card.add([highlight, bg, carPreview, name]);
+
+        card.add([cardShadow, highlight, bg, carPreview, name]);
         card.colorData = colorData;
         card.index = index;
+        card.bg = bg;
         
         // Click handler
         bg.on('pointerdown', () => {
@@ -226,15 +224,13 @@ class CarColorSelectionScene extends Phaser.Scene {
 
             if (i === index) {
                 card.highlight.setVisible(true);
-                const bg = card.getAt(1);
-                if (bg && bg.setFillStyle) {
-                    bg.setFillStyle(0xFFFACD); // Highlight background
+                if (card.bg && card.bg.setFillStyle) {
+                    card.bg.setFillStyle(0xFFFACD); // Highlight background
                 }
             } else {
                 card.highlight.setVisible(false);
-                const bg = card.getAt(1);
-                if (bg && bg.setFillStyle) {
-                    bg.setFillStyle(0xFFFFFF); // Normal background
+                if (card.bg && card.bg.setFillStyle) {
+                    card.bg.setFillStyle(0xFFFFFF); // Normal background
                 }
             }
         });
@@ -249,37 +245,10 @@ class CarColorSelectionScene extends Phaser.Scene {
     }
     
     createStartButton(x, y) {
-        const button = this.add.container(x, y);
-        
-        const bg = this.add.rectangle(0, 0, 200, 50, 0x00FF00);
-        bg.setStrokeStyle(3, 0x000000);
-        bg.setInteractive({ useHandCursor: true });
-        
-        const text = this.add.text(0, 0, 'START RACE!', {
-            fontSize: '24px',
-            fontFamily: 'Arial',
-            color: '#000000',
-            fontStyle: 'bold'
-        });
-        text.setOrigin(0.5);
-        
-        button.add([bg, text]);
-        
-        bg.on('pointerdown', () => {
-            console.log('Start Race clicked in CarColorSelectionScene');
+        return GameArt.createButton(this, x, y, 220, 52, 'START RACE!', { color: 0x2EB94E, fontSize: 22 }, () => {
             this.scene.start('GameScene');
             this.scene.launch('UIScene');
         });
-        
-        bg.on('pointerover', () => {
-            bg.setFillStyle(0x00DD00);
-        });
-        
-        bg.on('pointerout', () => {
-            bg.setFillStyle(0x00FF00);
-        });
-        
-        return button;
     }
     
     createBackButton(x, y) {

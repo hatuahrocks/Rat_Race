@@ -89,7 +89,6 @@ class ObstacleSpawner {
                 return;
             }
             const obstacleType = Phaser.Math.RND.pick(this.levelTheme.obstacles);
-            console.log('Spawning obstacle type:', obstacleType);
             const obstacle = new Obstacle(this.scene, this.spawnX, y, obstacleType, lane);
             this.obstacles.push(obstacle);
         }
@@ -103,7 +102,6 @@ class ObstacleSpawner {
         if (this.isLaneClearIncludingStrawberries(lane)) {
             const ramp = new Ramp(this.scene, this.spawnX, y, lane);
             this.ramps.push(ramp);
-            console.log('Ramp spawned at lane', lane, 'position', this.spawnX, y);
         }
     }
     
@@ -161,12 +159,8 @@ class ObstacleSpawner {
         
         // Check obstacle collisions
         for (let obstacle of this.obstacles) {
-            if (Math.abs(obstacle.x - vehicleX) < collisionRange && 
+            if (Math.abs(obstacle.x - vehicleX) < collisionRange &&
                 Math.abs(obstacle.y - vehicleY) < 30) {
-                // Store reference to blocking obstacle
-                if (vehicle.hitObstacle) {
-                    vehicle.blockingObstacle = obstacle;
-                }
                 return { type: 'obstacle', object: obstacle };
             }
         }
@@ -180,7 +174,6 @@ class ObstacleSpawner {
                     ramp.hitVehicles = new Set();
                 }
                 if (!ramp.hitVehicles.has(vehicle)) {
-                    console.log('Ramp collision detected!', ramp.x, vehicleX, ramp.y, vehicleY);
                     ramp.onHit();
                     ramp.hitVehicles.add(vehicle);
                     return { type: 'ramp', object: ramp };
@@ -233,9 +226,7 @@ class ObstacleSpawner {
         if (this.isLaneClearIncludingStrawberries(lane)) {
             const strawberry = new Strawberry(this.scene, this.spawnX, y);
             this.strawberries.push(strawberry);
-            console.log('Strawberry spawned at lane', lane, 'position', this.spawnX, y);
         } else {
-            console.log('Strawberry spawn blocked - lane', lane, 'not clear');
         }
     }
 

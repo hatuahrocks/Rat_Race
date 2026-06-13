@@ -1,5 +1,5 @@
 const GameConfig = {
-    VERSION: '1.8.6', // Fixed warning circle transparency
+    VERSION: '1.11.0', // Vehicle base class, race music, best times, theme un-forced, dead code removed
     LANE_COUNT: 4,
     LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
     OFFROAD_HIGH_Y: 184, // Above top lane
@@ -15,6 +15,8 @@ const GameConfig = {
     GRAVITY: 1600,
     OBSTACLE_SLOW_AMOUNT: 0.5,
     OBSTACLE_SLOW_DURATION: 1200,
+    SPIN_OUT_DURATION: 1100, // ms of spin-out after hitting an obstacle (heavy slow, no full stop)
+    VEHICLE_BLOCK_SPEED: 0.25, // speed multiplier while stuck behind another vehicle
     RACE_DISTANCE: 10000, // Back to original - progress bar reaches 100% when finish line appears
     SWIPE_THRESHOLD: 30,
     LANE_CHANGE_DURATION: 200,

@@ -42,18 +42,28 @@ class MainMenuScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // Set background
-        this.cameras.main.setBackgroundColor('#87CEEB');
-        
+        // Sky gradient backdrop with rolling grass hills
+        GameArt.createMenuBackdrop(this, 'menu-sky', '#4FACE9', '#C9EDFF');
+        this.createGardenScenery();
+
         // Add decorative background elements
         this.createBackgroundElements();
-        
-        // Title
-        const title = this.add.text(width / 2, height / 3, 'RAT RACER', {
-            fontSize: '72px',
+
+        // Title with soft drop shadow
+        const titleShadow = this.add.text(width / 2 + 4, height / 3 + 5, 'RAT RACE', {
+            fontSize: '76px',
+            fontFamily: 'Arial Black',
+            color: '#000000',
+            resolution: 2
+        });
+        titleShadow.setOrigin(0.5);
+        titleShadow.setAlpha(0.25);
+
+        const title = this.add.text(width / 2, height / 3, 'RAT RACE', {
+            fontSize: '76px',
             fontFamily: 'Arial Black',
             color: '#FFD700',
-            stroke: '#000000',
+            stroke: '#7A4A00',
             strokeThickness: 8,
             resolution: 2 // Higher resolution for crisp text
         });
@@ -61,7 +71,7 @@ class MainMenuScene extends Phaser.Scene {
         
         // Add bounce animation to title
         this.tweens.add({
-            targets: title,
+            targets: [title, titleShadow],
             scaleX: 1.1,
             scaleY: 1.1,
             duration: 1000,
@@ -126,79 +136,47 @@ class MainMenuScene extends Phaser.Scene {
     }
     
     createButton(x, y, text, callback) {
-        const button = this.add.container(x, y);
-
-        // Button background
-        const bg = this.add.rectangle(0, 0, 250, 60, 0x4444FF);
-        bg.setStrokeStyle(4, 0x000000);
-
-        // Make interactive with new approach
-        bg.setInteractive({ useHandCursor: true });
-
-        // Button text
-        const label = this.add.text(0, 0, text, {
-            fontSize: '32px',
-            fontFamily: 'Arial',
-            color: '#FFFFFF',
-            stroke: '#000000',
-            strokeThickness: 2
-        });
-        label.setOrigin(0.5);
-
-        button.add([bg, label]);
-
-        // Remove all existing listeners first
-        bg.removeAllListeners();
-
-        // Simple hover effects without tweens
-        bg.on('pointerover', () => {
-            window.debugLogger.log('INPUT', `Button "${text}" hover`);
-            bg.setFillStyle(0x6666FF);
-            button.setScale(1.05);
-        });
-
-        bg.on('pointerout', () => {
-            bg.setFillStyle(0x4444FF);
-            button.setScale(1);
-        });
-
-        bg.on('pointerdown', () => {
-            window.debugLogger.log('INPUT', `Button "${text}" pointerdown event`, {
-                x: x,
-                y: y,
-                interactive: bg.input.enabled
-            });
-
-            // Disable further clicks
-            bg.disableInteractive();
-            window.debugLogger.log('INPUT', `Button "${text}" disabled`);
-
-            // Call the callback
+        return GameArt.createButton(this, x, y, 250, 62, text, { color: 0x3D6DEB, fontSize: 28 }, () => {
+            window.debugLogger.log('INPUT', `Button "${text}" pressed`);
             callback();
         });
+    }
 
-        return button;
+    createGardenScenery() {
+        const width = this.cameras.main.width;
+        const height = this.cameras.main.height;
+
+        // Rolling hills along the bottom
+        const hillBack = this.add.ellipse(width * 0.25, height + 60, width * 1.2, 320, 0x7CB342);
+        const hillFront = this.add.ellipse(width * 0.8, height + 90, width * 1.3, 340, 0x66A03A);
+
+        // Scattered flowers on the front hill
+        const petals = [0xF06292, 0xFFFFFF, 0xFFB74D, 0xE57373];
+        for (let i = 0; i < 9; i++) {
+            const fx = 60 + i * (width - 120) / 8;
+            const fy = height - 52 + ((i * 37) % 28);
+            GameArt.createFlower(this, fx, fy, petals[i % petals.length]);
+        }
+
+        // Sun with glow
+        this.add.circle(width - 110, 92, 52, 0xFFF59D, 0.35);
+        this.add.circle(width - 110, 92, 34, 0xFFEE58);
     }
     
     createBackgroundElements() {
-        // Add some clouds
+        // Add some drifting clouds
         for (let i = 0; i < 3; i++) {
-            const cloud = this.add.container(
+            const cloud = GameArt.createCloud(
+                this,
                 Phaser.Math.Between(100, this.cameras.main.width - 100),
-                Phaser.Math.Between(50, 150)
+                Phaser.Math.Between(40, 150),
+                Phaser.Math.FloatBetween(0.8, 1.4)
             );
-            
-            const c1 = this.add.circle(0, 0, 40, 0xFFFFFF);
-            const c2 = this.add.circle(30, 0, 30, 0xFFFFFF);
-            const c3 = this.add.circle(-30, 0, 30, 0xFFFFFF);
-            
-            cloud.add([c1, c2, c3]);
-            cloud.setAlpha(0.7);
-            
+
             // Slow drift
             this.tweens.add({
                 targets: cloud,
-                x: cloud.x + Phaser.Math.Between(-50, 50),
+                x: cloud.x + Phaser.Math.Between(-60, 60),
                 duration: Phaser.Math.Between(10000, 15000),
                 ease: 'Sine.easeInOut',
                 yoyo: true,
@@ -211,22 +189,21 @@ class MainMenuScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
         
-        // Create a sample rat that runs across the screen
-        const ratContainer = this.add.container(-100, height - 100);
-        
-        // Simple car
-        const car = this.add.rectangle(0, 10, 50, 20, 0x333333);
-        const wheel1 = this.add.circle(-12, 20, 6, 0x222222);
-        const wheel2 = this.add.circle(12, 20, 6, 0x222222);
-        
+        // Create a sample rat that drives across the screen
+        const ratContainer = this.add.container(-100, height - 95);
+
+        // Ground shadow + detailed car
+        const shadow = this.add.ellipse(2, 27, 58, 12, 0x000000, 0.25);
+        const car = GameArt.createCar(this, { color: 0xCC0000, accent: 0xFF3333 });
+
         // Create detailed rat with facial features
         const character = Characters[0]; // Use Butter as default
         const detailedRat = this.paletteSwap.createRatSprite(character);
         detailedRat.setScale(0.8);
         detailedRat.y = -8;
-        
-        ratContainer.add([car, wheel1, wheel2, detailedRat]);
-        
+
+        ratContainer.add([shadow, car, detailedRat]);
+
         // Animate across screen
         this.tweens.add({
             targets: ratContainer,
@@ -236,20 +213,22 @@ class MainMenuScene extends Phaser.Scene {
             onRepeat: () => {
                 // Change rat character on each pass
                 const character = Phaser.Math.RND.pick(Characters);
-                ratContainer.removeAt(3); // Remove old rat
+                ratContainer.removeAt(2); // Remove old rat
                 const newRat = this.paletteSwap.createRatSprite(character);
                 newRat.setScale(0.8);
                 newRat.y = -8;
                 ratContainer.add(newRat);
             }
         });
-        
-        // Add wheel rotation
+
+        // Gentle bobbing as it drives
         this.tweens.add({
-            targets: [wheel1, wheel2],
-            rotation: Math.PI * 2,
-            duration: 500,
-            repeat: -1
+            targets: detailedRat,
+            y: detailedRat.y - 3,
+            duration: 260,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
         });
     }
 }

@@ -111,7 +111,6 @@ class Strawberry extends Phaser.GameObjects.Container {
         // Hide shadow immediately
         this.shadow.setVisible(false);
 
-        console.log('Strawberry collected!');
     }
 
     update(scrollSpeed) {

@@ -9,16 +9,10 @@ class LevelManager {
     }
     
     setTheme(themeId) {
-        console.log('Setting theme to:', themeId);
-        console.log('Available themes:', Object.keys(LevelThemes));
-
-        // FORCE GARDEN THEME ALWAYS FOR NOW
-        console.log('Forcing GARDEN theme (overriding requested theme)');
-        this.currentTheme = LevelThemes.GARDEN;
-
-        console.log('Final theme:', this.currentTheme.name);
-        console.log('Current theme obstacles:', this.currentTheme.obstacles);
-
+        // Resolve the requested theme by id; GARDEN is the default/fallback.
+        // (Only GARDEN has bespoke scenery so far - other themes get its
+        // backdrop but use their own obstacle sets.)
+        this.currentTheme = Object.values(LevelThemes).find(t => t.id === themeId) || LevelThemes.GARDEN;
         this.applyTheme();
     }
     
@@ -32,68 +26,160 @@ class LevelManager {
     }
     
     createBackgroundElements() {
-        // Create simple parallax background layers
-        const bg1 = this.scene.add.rectangle(
-            0, 0, 
-            GameConfig.VIEWPORT.WIDTH * 2, 
-            GameConfig.VIEWPORT.HEIGHT,
-            Phaser.Display.Color.HexStringToColor(this.currentTheme.backgroundColor).color
-        );
-        bg1.setOrigin(0, 0);
-        bg1.setDepth(-10);
-        bg1.setAlpha(0.8);
-        
-        // Add some decorative elements based on theme
-        if (this.currentTheme.id === 'backyard' || this.currentTheme.id === 'beach') {
-            // Add clouds
-            for (let i = 0; i < 5; i++) {
-                const cloud = this.createCloud(
-                    Phaser.Math.Between(0, GameConfig.VIEWPORT.WIDTH),
-                    Phaser.Math.Between(50, 150)
-                );
-                cloud.setDepth(-9);
-            }
-        }
-        
+        // Parallax layers scrolled in update(): { containers: [a, b], factor, width }
+        this.parallaxLayers = [];
+
+        // Sky gradient (drawn tall so vertical camera follow never reveals edges)
+        GameArt.ensureGradient(this.scene, 'sky-garden', 32, 512, [
+            [0, '#4FACE9'],
+            [0.55, '#8ED1F7'],
+            [1, '#D9F2FF']
+        ]);
+        const sky = this.scene.add.image(-2000, -400, 'sky-garden');
+        sky.setOrigin(0, 0);
+        sky.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 560); // covers up to y=160 (horizon)
+        sky.setDepth(-12);
+
+        // Sun with soft glow
+        const sunGlow = this.scene.add.circle(890, 58, 46, 0xFFF59D, 0.35);
+        const sun = this.scene.add.circle(890, 58, 30, 0xFFEE58);
+        sunGlow.setDepth(-11);
+        sun.setDepth(-11);
+
+        // Top grass bank between sky and the high offroad dirt
+        GameArt.ensureGradient(this.scene, 'grass-top', 32, 64, [
+            [0, '#94C946'],
+            [1, '#6FA834']
+        ]);
+        const grassTop = this.scene.add.image(-2000, 100, 'grass-top');
+        grassTop.setOrigin(0, 0);
+        grassTop.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 58);
+        grassTop.setDepth(-9);
+
+        // Bottom grass foreground below the low offroad dirt
+        GameArt.ensureGradient(this.scene, 'grass-bottom', 32, 64, [
+            [0, '#6FA834'],
+            [1, '#3F6B1D']
+        ]);
+        const grassBottom = this.scene.add.image(-2000, 616, 'grass-bottom');
+        grassBottom.setOrigin(0, 0);
+        grassBottom.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 360);
+        grassBottom.setDepth(-9);
+
+        // Distant parallax scenery: picket fence + hedge + flowers
+        this.createParallaxPair(w => this.buildFenceSegment(w), 1280, 0.25, -8.5);
+        this.createParallaxPair(w => this.buildHedgeSegment(w), 1280, 0.35, -8);
+        this.createParallaxPair(w => this.buildTopFlowerSegment(w), 1280, 0.45, -7.5);
+
+        // Foreground flowers/tufts on the bottom grass (move with the world)
+        this.createParallaxPair(w => this.buildBottomFlowerSegment(w), 1400, 1.0, -7.5);
+
+        // Drifting clouds (very slow parallax)
+        this.createParallaxPair(w => this.buildCloudSegment(w), 1600, 0.08, -10);
+
         // Create road/track
         this.createRoad();
     }
-    
-    createCloud(x, y) {
-        const cloud = this.scene.add.container(x, y);
-        
-        const circle1 = this.scene.add.circle(0, 0, 30, 0xFFFFFF);
-        const circle2 = this.scene.add.circle(25, 0, 25, 0xFFFFFF);
-        const circle3 = this.scene.add.circle(-25, 0, 25, 0xFFFFFF);
-        const circle4 = this.scene.add.circle(0, -10, 20, 0xFFFFFF);
-        
-        cloud.add([circle1, circle2, circle3, circle4]);
-        cloud.setAlpha(0.6);
-        
-        // Add slow drift animation
-        this.scene.tweens.add({
-            targets: cloud,
-            x: cloud.x - 50,
-            duration: 20000,
-            repeat: -1
+
+    // Build two identical segments side by side; update() wraps them for seamless scroll
+    createParallaxPair(builder, segmentWidth, factor, depth) {
+        const containers = [0, 1].map(i => {
+            const c = builder(segmentWidth);
+            // Start one segment left of origin so the visible area left of x=0 is covered
+            c.x = (i - 1) * segmentWidth;
+            c.setDepth(depth);
+            return c;
         });
-        
-        return cloud;
+        this.parallaxLayers.push({ containers, factor, width: segmentWidth });
+    }
+
+    buildFenceSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        // Horizontal rails
+        [104, 124].forEach(y => {
+            const rail = this.scene.add.rectangle(0, y, width, 5, 0xE8E2D4);
+            rail.setOrigin(0, 0.5);
+            c.add(rail);
+        });
+        // Pickets
+        for (let x = 0; x < width; x += 34) {
+            const slat = this.scene.add.rectangle(x, 114, 9, 44, 0xF5F0E1);
+            slat.setStrokeStyle(1, 0xC9C2AE);
+            c.add(slat);
+            const tip = this.scene.add.triangle(x, 89, -4.5, 5, 4.5, 5, 0, -4, 0xF5F0E1);
+            c.add(tip);
+        }
+        return c;
+    }
+
+    buildHedgeSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        const greens = [0x2E7D32, 0x388E3C, 0x43A047];
+        for (let x = 20; x < width; x += 130) {
+            // Each bush is a cluster of overlapping circles
+            const jitter = (x * 7919) % 23; // deterministic per-position variation
+            const baseY = 132 + (jitter % 6);
+            c.add(this.scene.add.circle(x - 16, baseY, 16, greens[0]));
+            c.add(this.scene.add.circle(x + 14, baseY + 2, 14, greens[0]));
+            c.add(this.scene.add.circle(x, baseY - 8, 17, greens[1]));
+            c.add(this.scene.add.circle(x - 6, baseY - 4, 12, greens[2]));
+        }
+        return c;
+    }
+
+    buildTopFlowerSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        const petals = [0xF06292, 0xFFFFFF, 0xFFB74D, 0xE57373, 0xBA68C8];
+        for (let x = 30; x < width; x += 90) {
+            const pick = Math.floor((x * 31) % petals.length);
+            c.add(GameArt.createFlower(this.scene, x, 146 + ((x * 13) % 8), petals[pick]));
+        }
+        return c;
+    }
+
+    buildBottomFlowerSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        const petals = [0xF06292, 0xFFFFFF, 0xFFB74D, 0x64B5F6];
+        for (let x = 40; x < width; x += 120) {
+            const pick = Math.floor((x * 17) % petals.length);
+            c.add(GameArt.createFlower(this.scene, x, 648 + ((x * 11) % 30), petals[pick]));
+            c.add(GameArt.createGrassTuft(this.scene, x + 55, 660 + ((x * 7) % 40), 0x4E7B2F));
+        }
+        return c;
+    }
+
+    buildCloudSegment(width) {
+        const c = this.scene.add.container(0, 0);
+        const spots = [[120, 38, 0.9], [520, 64, 0.7], [900, 30, 1.1], [1300, 70, 0.8]];
+        spots.forEach(([x, y, s]) => c.add(GameArt.createCloud(this.scene, x, y, s)));
+        return c;
     }
     
     createRoad() {
         const roadY = GameConfig.VIEWPORT.HEIGHT / 2;
         const roadHeight = 320;
-        
-        // Main road surface - make it much wider to cover entire screen width
-        const road = this.scene.add.rectangle(
-            -2000, roadY, 
-            GameConfig.VIEWPORT.WIDTH * 6, 
-            roadHeight,
-            GameConfig.COLORS.ROAD
-        );
-        road.setOrigin(0, 0.5);
+
+        // Main road surface - subtle vertical gradient so it reads as asphalt, not a flat slab
+        GameArt.ensureGradient(this.scene, 'road-asphalt', 32, 256, [
+            [0, '#565A5E'],
+            [0.5, '#484C50'],
+            [1, '#3E4246']
+        ]);
+        const road = this.scene.add.image(-2000, roadY - roadHeight / 2, 'road-asphalt');
+        road.setOrigin(0, 0);
+        road.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, roadHeight);
         road.setDepth(-5);
+
+        // Soft shading just inside the road edges for depth
+        [roadY - roadHeight / 2 + 9, roadY + roadHeight / 2 - 9].forEach(y => {
+            const edgeShade = this.scene.add.rectangle(
+                -2000, y,
+                GameConfig.VIEWPORT.WIDTH * 6, 14,
+                0x000000, 0.18
+            );
+            edgeShade.setOrigin(0, 0.5);
+            edgeShade.setDepth(-4.5);
+        });
         
         // Initialize lane divider arrays for animation
         this.laneDividers = [];
@@ -148,45 +234,49 @@ class LevelManager {
     }
     
     createOffroadAreas(roadY, roadHeight) {
-        // High offroad area (above top lane)
-        const offroadHigh = this.scene.add.rectangle(
-            -2000, GameConfig.OFFROAD_HIGH_Y,
-            GameConfig.VIEWPORT.WIDTH * 6, 60,
-            0x8B7355 // Brown rough terrain
-        );
-        offroadHigh.setOrigin(0, 0.5);
+        // Dirt shoulders get a gradient and are tall enough to touch both
+        // the road edge and the grass (no sky-colored gaps)
+        GameArt.ensureGradient(this.scene, 'dirt-high', 32, 80, [
+            [0, '#A18560'],
+            [1, '#7C654A']
+        ]);
+        GameArt.ensureGradient(this.scene, 'dirt-low', 32, 80, [
+            [0, '#8A7050'],
+            [1, '#6E5840']
+        ]);
+
+        // High offroad area (above top lane): from grass (y=158) to road edge (y=224)
+        const offroadHigh = this.scene.add.image(-2000, 156, 'dirt-high');
+        offroadHigh.setOrigin(0, 0);
+        offroadHigh.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 70);
         offroadHigh.setDepth(-6);
-        
-        // Low offroad area (below bottom lane)
-        const offroadLow = this.scene.add.rectangle(
-            -2000, GameConfig.OFFROAD_LOW_Y,
-            GameConfig.VIEWPORT.WIDTH * 6, 60,
-            0x8B7355 // Brown rough terrain
-        );
-        offroadLow.setOrigin(0, 0.5);
+
+        // Low offroad area (below bottom lane): from road edge (y=544) to grass (y=616)
+        const offroadLow = this.scene.add.image(-2000, 546, 'dirt-low');
+        offroadLow.setOrigin(0, 0);
+        offroadLow.setDisplaySize(GameConfig.VIEWPORT.WIDTH * 6, 72);
         offroadLow.setDepth(-6);
         
         // Add rough texture pattern to offroad areas
-        console.log('Creating offroad textures at Y positions:', GameConfig.OFFROAD_HIGH_Y, GameConfig.OFFROAD_LOW_Y);
         this.createOffroadTexture(GameConfig.OFFROAD_HIGH_Y);
         this.createOffroadTexture(GameConfig.OFFROAD_LOW_Y);
     }
     
     createOffroadTexture(y) {
         // Create brown spots using simple approach - create individual spots and move them
-        console.log('Creating offroad texture at Y:', y);
         
         // Create spots directly, not in a container
         const spots = [];
         for (let x = -400; x < 8000; x += 80) { // Same 80px spacing as dividers
             if (Math.random() < 0.4) { // 40% chance to create a spot
-                const spot = this.scene.add.circle(
+                const spot = this.scene.add.ellipse(
                     x + Phaser.Math.Between(-20, 20), // Add some randomness to X
-                    y + Phaser.Math.Between(-25, 25), // Random Y within offroad area
-                    Phaser.Math.Between(4, 10), // Bigger spots to be more visible
-                    0x654321 // Dark brown
+                    y + Phaser.Math.Between(-22, 22), // Random Y within offroad area
+                    Phaser.Math.Between(6, 12),
+                    Phaser.Math.Between(3, 6), // Flattened pebble/rut shapes
+                    0x55432F // Dark brown
                 );
-                spot.setAlpha(0.8); // More visible
+                spot.setAlpha(0.5);
                 spot.setDepth(-5);
                 spots.push(spot);
             }
@@ -194,7 +284,6 @@ class LevelManager {
         
         // Store spots for animation
         this.offroadSpots.push({ spots: spots, isSpotArray: true });
-        console.log('Created', spots.length, 'individual offroad spots at Y:', y);
     }
     
     createFinishLine(x) {
@@ -257,30 +346,31 @@ class LevelManager {
         
         // Animate offroad spots - move individual spots
         if (this.offroadSpots && scrollSpeed > 0) {
-            if (Math.random() < 0.01) { // Log 1% of the time
-                console.log('Updating offroad spots, groups:', this.offroadSpots.length, 'scrollSpeed:', scrollSpeed);
-            }
-            
-            this.offroadSpots.forEach((spotGroup, groupIndex) => {
+            this.offroadSpots.forEach(spotGroup => {
                 if (spotGroup.isSpotArray && spotGroup.spots) {
-                    // Move individual spots
-                    spotGroup.spots.forEach((spot, spotIndex) => {
+                    spotGroup.spots.forEach(spot => {
                         spot.x -= scrollSpeed;
-                        
+
                         // Reset spot when it goes off screen left - give much more buffer
-                        if (spot.x < -400) { // Much further left to avoid early disappearing
+                        if (spot.x < -400) {
                             spot.x += 8400; // Move to far right (8000 + 400 buffer)
-                        }
-                        
-                        // Debug logging
-                        if (groupIndex === 0 && spotIndex === 0 && Math.random() < 0.005) {
-                            console.log('Moving spot:', spot.x, 'scrollSpeed:', scrollSpeed);
                         }
                     });
                 }
             });
-        } else if (Math.random() < 0.01) {
-            console.log('Offroad spots not updating - offroadSpots:', !!this.offroadSpots, 'scrollSpeed:', scrollSpeed);
+        }
+
+        // Scroll parallax scenery (fence, hedge, flowers, clouds) and wrap segments
+        if (this.parallaxLayers && scrollSpeed > 0) {
+            this.parallaxLayers.forEach(layer => {
+                layer.containers.forEach(c => {
+                    c.x -= scrollSpeed * layer.factor;
+                    // Wrap once fully past the visible left edge (camera sees ~x=-320)
+                    if (c.x <= -layer.width - 400) {
+                        c.x += layer.width * 2;
+                    }
+                });
+            });
         }
         
         // Check for race completion - create finish line when we're close to the end

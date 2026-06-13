@@ -1,196 +1,119 @@
 # Rat Race - Phaser 3 HTML5 Game
 
 ## Current Game State
-A fully functional Excitebike-style racing game with advanced collision mechanics, 6-lane system, and comprehensive visual effects.
+An Excitebike-style lane racing game: 6-lane system (4 road + 2 offroad), vehicle collisions with boost/push mechanics, rubber-banded AI opponents, procedural garden visuals, and a PWA setup for iOS home-screen play.
 
-## Key Features Implemented
+## Core Mechanics
 
-### Core Racing Mechanics
+### Lanes
 - **6-Lane System**: 4 road lanes (0-3) + 2 offroad lanes (-1 high, 4 low)
-- **Extended Lane Mapping**: Uses `extendedLane` property (-1 to 4) for full lane management
-- **Lane Change Animations**: Smooth transitions between lanes with progress tracking
-- **Speed Management**: Base speed increased by 30% for faster gameplay
+- `extendedLane` property (-1 to 4) is the source of truth; array lookups use `EXTENDED_LANE_POSITIONS[extendedLane + 1]`
+- Offroad: 25% slowdown (`OFFROAD_SLOWDOWN`), rumble + dust effects, no obstacles spawn there
 
-### Collision System
-- **Vehicle-to-Vehicle Collisions**: 
-  - Rear-end collisions boost front vehicle (40% speed for 1.5 seconds)
-  - Side collisions push vehicles into adjacent lanes or offroad
-  - Collision cooldowns prevent spam collisions
-- **Obstacle Interactions**: Vehicles stop completely when hitting obstacles
-- **Vehicle Blocking**: Vehicles cannot pass through each other
+### Collisions
+- **Rear-end**: front vehicle gets a speed boost (1.4x, or 1.8x if it was braking — the "brake bait" tactic); back vehicle crawls at `VEHICLE_BLOCK_SPEED` (25%) until clear
+- **Side**: aggressor pushes victim into the adjacent lane (including offroad) with a 1s slowdown
+- **Obstacles**: hitting one triggers a ~1.1s spin-out (`SPIN_OUT_DURATION`) — heavy slowdown with a 360° spin animation, NOT a full stop. The world never freezes. Airborne vehicles (off ramps) clear obstacles entirely.
+- Collision detection: bounding boxes + swept boxes for high speed (GameScene.checkVehicleCollisions)
 
-### Offroad Mechanics
-- **Offroad Areas**: Upper (-1) and lower (4) offroad lanes with brown terrain
-- **Speed Penalty**: 25% slowdown when offroad (`GameConfig.OFFROAD_SLOWDOWN`)
-- **Visual Effects**:
-  - Rumble animation (6px amplitude for player, 4px for AI, doubled when offroad)
-  - Dust particles behind vehicle (darker brown, world-space coordinates)
-  - Reduced vehicle opacity (0.8 alpha)
-- **Dark Brown Spots**: Animated terrain details moving at lane divider speed
+### AI
+- 3 opponents with per-race speed variance and difficulty-scaled decisions
+- **Rubber-banding** (AIVehicle.update): AI ahead of the player by >320px eases off (down to 0.7x); behind by >220px speeds up (up to 1.45x). Keeps rivals on screen and races close.
+- AI seeks strawberries/ramps, avoids obstacles, returns to road within ~1s of going offroad
 
-### Visual Effects & UI
-- **Car Color Selection**: 8 color options after character selection
-- **Boost Effects**: Particle systems and visual feedback
-- **Collision Feedback**: Exclamation marks and particle effects when pushed/boosted
-- **Airborne System**: Shadow effects and physics for ramp jumps
-- **Scrolling Elements**: All visual elements (dividers, obstacles, finish line) sync with player speed
-
-### AI Behavior
-- **Smart Decision Making**: Lane changes to avoid obstacles
-- **Offroad Compliance**: AI vehicles properly slow down when offroad
-- **Collision Responses**: AI receives boosts and gets pushed like player
-- **Extended Lane Usage**: AI uses full 6-lane system including offroad
+### Race flow & stats
+- Camera is FIXED (`setScroll(-262, 0)`) — the world scrolls past it; the track never shifts when changing lanes
+- World scroll speed = player speed; everything (obstacles, dividers, parallax) moves relative to the player
+- GameScene tracks real stats (time, top speed, boosts used, strawberries, obstacles hit) in `raceStats` and passes them to RaceEndScene — never fake stat values
+- Rival progress markers (colored dots) render on the UIScene progress bar via `updateRacerMarkers`
 
 ## Technical Architecture
 
-### Key Files and Their Roles
-
-#### Core Game Objects
-- `src/objects/PlayerVehicle.js`: Player vehicle with full collision, offroad, and boost mechanics
-- `src/objects/AIVehicle.js`: AI opponents with matching player mechanics
-- `src/objects/Obstacle.js`: Static obstacles that stop vehicles
-- `src/objects/Ramp.js`: Jump ramps with airborne physics
-
-#### Scene Management
-- `src/scenes/GameScene.js`: Main racing scene with collision detection and vehicle management
-- `src/scenes/CarColorSelectionScene.js`: Car color picker (8 options)
-- `src/scenes/CharacterSelectionScene.js`: Character selection
-- `src/scenes/UIScene.js`: HUD with boost meter and race progress
-
-#### Systems
-- `src/systems/LevelManager.js`: Road rendering, lane dividers, offroad areas, finish line
-- `src/systems/ObstacleSpawner.js`: Obstacle and ramp generation
-- `src/systems/InputManager.js`: Keyboard/touch input handling
-- `src/systems/AudioManager.js`: Sound effects (placeholder)
-
-#### Configuration
-- `src/config/config.js`: All game constants and settings
-- `src/config/Characters.js`: Available rat characters
-- `src/config/LevelThemes.js`: Visual themes for different tracks
-
-### Important Game Constants
-```javascript
-EXTENDED_LANE_POSITIONS: [184, 264, 344, 424, 504, 584] // Y positions for all 6 lanes
-OFFROAD_SLOWDOWN: 0.75 // 25% speed reduction
-BASE_FORWARD_SPEED: 312 // Increased by 30% from original
-BOOST_SPEED_MULTIPLIER: 1.8 // Boost multiplier
-```
-
-## Recent Major Fixes
-1. **AI Offroad Slowdown**: AI vehicles now properly slow down when offroad
-2. **Collision Boost System**: Enhanced with visual feedback and proper speed management
-3. **Lane Pushing**: Bidirectional pushing system works for all lane types
-4. **Visual Synchronization**: All moving elements sync with player speed
-5. **Extended Lane System**: Unified 6-lane system for both player and AI
-
-## Known Working Features
-- ✅ 6-lane racing with voluntary offroad movement
-- ✅ Vehicle-to-vehicle collisions with boost effects
-- ✅ Lane pushing mechanics (including offroad pushing)
-- ✅ Offroad visual effects (dust, rumble, terrain spots)
-- ✅ Obstacle blocking (vehicles stop completely)
-- ✅ Ramp jumping with airborne physics
-- ✅ Car color selection screen
-- ✅ AI opponents with human-like behavior
-- ✅ Synchronized visual elements
-- ✅ Proper speed management for all scenarios
-
-## Game Flow
-1. **Character Selection**: Choose from 8 rat characters
-2. **Car Color Selection**: Pick from 8 car color combinations
-3. **Racing**: 6-lane racing with strategic offroad usage
-4. **Collision Mechanics**: Bump and boost other racers
-5. **Obstacles**: Navigate around stopping obstacles
-6. **Finish**: Cross finish line to complete race
-
-## Controls
-- **Arrow Keys**: Lane changes (up/down)
-- **Spacebar**: Boost
-- **Touch/Swipe**: Mobile controls for lane changes
-
-## Version Management
-**IMPORTANT**: Always increment the version number when making changes:
-
-### Two Places to Update (MUST update both):
-1. **`src/config/config.js`**: Update `GameConfig.VERSION`
-2. **`index.html`**: Update `gameVersion` constant (line 52)
-
-### Why Two Places?
-- `GameConfig.VERSION` displays version on title screen
-- `gameVersion` in index.html forces cache refresh (adds ?v=X.X.X to all scripts)
-- Both must match to ensure proper cache busting
-
-### Version Format
-`MAJOR.MINOR.PATCH`
-- Patch: Bug fixes (1.0.1 → 1.0.2)
-- Minor: New features (1.0.2 → 1.1.0)
-- Major: Breaking changes (1.1.0 → 2.0.0)
-
-### Cache Busting
-The index.html file appends `?v=X.X.X` to all script URLs, forcing browsers and home screen apps to reload the latest version instead of using cached files. This ensures iOS home screen apps always get the latest code.
-
-## Testing Commands
-```bash
-# Start development server (local only)
-npm start
-
-# Start development server accessible on local network (for iPad/mobile testing)
-python3 -m http.server 8082 --bind 0.0.0.0
-
-# Run linting
-npm run lint
-
-# Run type checking
-npm run typecheck
-```
-
-## Network Access
-To access the game from iPad/mobile devices on your local WiFi network:
-
-1. **Start network server**: `python3 -m http.server 8082 --bind 0.0.0.0`
-2. **Find your laptop's IP**: `ifconfig | grep "inet " | grep -v 127.0.0.1`
-3. **Access from mobile**: Open `http://[YOUR_IP]:8082` in mobile browser
-   - Example: `http://192.168.1.232:8082`
-4. **Touch controls**: Game supports mobile touch input for lane changes and boost
-
-## Development Notes
-- Game uses Phaser 3 framework
-- All coordinates are in pixels
-- Extended lane system maps -1→0, 0→1, 1→2, 2→3, 3→4, 4→5 for array indexing
-- Collision detection uses distance calculations with vehicle-specific ranges
-- Speed management considers offroad status, boost state, and collision effects
-- Visual effects use world coordinates for proper movement synchronization
-
-## File Structure
+### File Structure (verified)
 ```
 RatRace/
-├── index.html
-├── main.py (server)
+├── index.html              # loads scripts sequentially with ?v=VERSION cache busting
+├── manifest.json           # PWA manifest
 ├── src/
+│   ├── main.js             # Phaser config + scene registration
 │   ├── config/
-│   │   ├── config.js
-│   │   ├── Characters.js
-│   │   └── LevelThemes.js
+│   │   ├── config.js       # GameConfig: all constants + VERSION
+│   │   └── LevelThemes.js  # theme defs (GARDEN is default; others share its backdrop for now)
+│   ├── data/
+│   │   └── characters.js   # 8 rat characters (name, colors, accessory)
 │   ├── scenes/
-│   │   ├── GameScene.js
-│   │   ├── CarColorSelectionScene.js
-│   │   ├── CharacterSelectionScene.js
-│   │   └── UIScene.js
+│   │   ├── PreloadScene.js
+│   │   ├── MainMenuScene.js
+│   │   ├── SelectionScene.js          # character select (NOT "CharacterSelectionScene")
+│   │   ├── CarColorSelectionScene.js  # 8 car colors
+│   │   ├── GameScene.js               # main race: collisions, stats, race flow
+│   │   ├── UIScene.js                 # HUD overlay (launched, not started)
+│   │   └── RaceEndScene.js            # results + real stats
 │   ├── objects/
-│   │   ├── PlayerVehicle.js
-│   │   ├── AIVehicle.js
-│   │   ├── Obstacle.js
-│   │   └── Ramp.js
-│   ├── systems/
-│   │   ├── InputManager.js
-│   │   ├── AudioManager.js
-│   │   ├── ObstacleSpawner.js
-│   │   ├── LevelManager.js
-│   │   ├── PaletteSwap.js
-│   │   └── PatchesManager.js
-│   └── main.js
+│   │   ├── Vehicle.js         # BASE CLASS: all racing mechanics (lanes, boosts, spin-outs, blocking, airborne, offroad, collision boxes). Subclasses customize via opts + hooks (approveLaneChange, applySpeedModifiers, onOffroadTick)
+│   │   ├── PlayerVehicle.js   # thin: registry color + obstacle-clear lane check
+│   │   ├── AIVehicle.js       # AI brain, lane-change cooldown, rubber-banding, return-to-road failsafe
+│   │   ├── Obstacle.js        # garden obstacle art + warning ring
+│   │   ├── Ramp.js            # jump ramp
+│   │   └── Strawberry.js      # boost power-up
+│   └── systems/
+│       ├── GameArt.js         # shared procedural art: gradients, car sprite, panels, buttons, warning rings
+│       ├── LevelManager.js    # parallax garden environment, road, finish line, progress
+│       ├── ObstacleSpawner.js # obstacle/ramp/strawberry spawning + collision queries
+│       ├── InputManager.js    # keyboard + swipe input
+│       ├── AudioManager.js    # SHARED via registry — never destroy from a scene
+│       ├── PaletteSwap.js     # procedural rat sprites + accessories
+│       ├── PatchesManager.js
+│       └── DebugLogger.js     # window.debugLogger
+├── assets/audio/              # real files (bump, boost, push, ramp, brake, music_menu.mp3, music_race.wav)
+└── (all art is drawn procedurally — there are no image assets)
 ```
 
+### Key Constants (src/config/config.js)
+```javascript
+EXTENDED_LANE_POSITIONS: [184, 264, 344, 424, 504, 584] // Y for all 6 lanes
+BASE_FORWARD_SPEED: 312
+OFFROAD_SLOWDOWN: 0.75
+BOOST_SPEED_MULTIPLIER: 1.6   // manual boost adds +60%; ramp +50%; strawberry +70% (additive)
+SPIN_OUT_DURATION: 1100       // ms; obstacle hit = spin-out, never a dead stop
+VEHICLE_BLOCK_SPEED: 0.25     // crawl speed when stuck behind a vehicle
+RACE_DISTANCE: 10000
+```
+
+## Known Pitfalls (learned the hard way)
+- **AudioManager is shared** through `this.registry.get('audioManager')`. Destroying it in any scene's `shutdown()` silences the whole session.
+- Per-frame speed is **recalculated every update** in both vehicle classes. Any externally-set speed (e.g. collision boost) must set a guard flag (`hasCollisionBoost`) or it is overwritten on the next frame.
+- UIScene/GameScene instances are **reused across races** — reset any per-race state (e.g. `racerMarkers`) in `create()`, not just the constructor.
+- Use `this.scene.time.now`, not `Date.now()`, for game-time cooldowns.
+- Don't add per-frame `console.log` calls — they were a real performance/noise problem and were deliberately stripped.
+- Racing mechanics belong in `Vehicle.js` (the shared base class), not in PlayerVehicle/AIVehicle. Add behavior differences through the hook methods (`approveLaneChange`, `applySpeedModifiers`, `onOffroadTick`) or constructor opts — do not re-duplicate logic into the subclasses.
+- Best race times persist in `localStorage` under `ratrace_best_times` (per character name), managed by RaceEndScene.
+- `music_race.wav` is a generated chiptune loop (played by GameScene.startRace, stopped in endRace); menu music is handled by MainMenuScene.
+
+## Version Management
+**IMPORTANT**: Always increment the version when making changes, in BOTH places:
+1. `src/config/config.js` → `GameConfig.VERSION`
+2. `index.html` → `gameVersion` constant
+
+They must match. `index.html` appends `?v=X.X.X` to every script URL for cache busting (critical for iOS home-screen apps).
+
+Format `MAJOR.MINOR.PATCH`: patch = bug fix, minor = feature, major = breaking.
+
+## Running the Game
+```bash
+# Local dev server (no build step — plain script tags)
+npx http-server -p 8082 -c-1
+# or
+python3 -m http.server 8082 --bind 0.0.0.0   # accessible from iPad/mobile on LAN
+```
+- Find your LAN IP with `ifconfig | grep "inet " | grep -v 127.0.0.1`, then open `http://<ip>:8082` on the device.
+- There are **no lint/typecheck/test scripts** — `package.json` has stubs only.
+- Syntax-check a file quickly with `node --check src/path/file.js`.
+
+## Controls
+- **Up/Down arrows**: lane changes (swipe up/down on touch)
+- **Spacebar / boost buttons**: boost (full-meter tap system with cooldown)
+- **Left arrow / swipe back**: brake (tactical — bait a rear-end collision for a 1.8x boost)
+
 ---
-*Last Updated: 2025-09-21*
-*Current State: Fully Functional Racing Game with Advanced Collision Mechanics*
+*Last Updated: 2026-06-12 (v1.11.0)*

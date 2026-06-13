@@ -3,35 +3,6 @@ class PaletteSwap {
         this.scene = scene;
     }
     
-    createColoredSprite(baseTexture, primaryColor, secondaryColor) {
-        // Create a new render texture
-        const rt = this.scene.add.renderTexture(0, 0, 64, 64);
-        rt.setVisible(false);
-        
-        // Draw the base sprite
-        rt.draw(baseTexture, 32, 32);
-        
-        // Apply color tinting
-        // This is a simplified version - in production you'd use shaders or canvas manipulation
-        return rt;
-    }
-    
-    tintSVG(svgElement, primaryColor, secondaryColor) {
-        if (!svgElement) return;
-        
-        // Find and color primary elements
-        const primaryElements = svgElement.querySelectorAll('.primary-color');
-        primaryElements.forEach(el => {
-            el.style.fill = primaryColor;
-        });
-        
-        // Find and color secondary elements
-        const secondaryElements = svgElement.querySelectorAll('.secondary-color');
-        secondaryElements.forEach(el => {
-            el.style.fill = secondaryColor;
-        });
-    }
-    
     hexToNumber(hex) {
         return parseInt(hex.replace('#', '0x'));
     }

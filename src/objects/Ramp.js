@@ -12,36 +12,69 @@ class Ramp extends Phaser.GameObjects.Container {
     }
     
     createRamp() {
-        // Create ramp shape
-        const rampBase = this.scene.add.polygon(0, 10, [
-            -30, 10,
-            30, 10,
-            25, -10,
-            -25, -10
-        ], 0xFFD700);
-        
-        // Add stripes for visibility
-        const stripe1 = this.scene.add.rectangle(-10, 0, 8, 20, 0x333333);
-        stripe1.setAngle(-15);
-        const stripe2 = this.scene.add.rectangle(10, 0, 8, 20, 0x333333);
-        stripe2.setAngle(-15);
-        
-        // Add arrow indicator
-        const arrow = this.scene.add.triangle(0, -5, -8, 8, 8, 8, 0, -8, 0xFFFFFF);
-        arrow.setAlpha(0.8);
-        
-        this.add([rampBase, stripe1, stripe2, arrow]);
-        
-        // Add pulsing animation to arrow
+        // Ground shadow
+        const shadow = this.scene.add.ellipse(2, 13, 64, 10, 0x000000);
+        shadow.setAlpha(0.2);
+
+        // Wedge rising to the right (direction of travel), drawn with shading
+        const g = this.scene.add.graphics();
+
+        // Side face (darker, gives the wedge thickness)
+        g.fillStyle(0xB8860B, 1);
+        g.fillTriangle(-30, 12, 30, 12, 30, -10);
+        g.fillRect(24, -10, 6, 22);
+
+        // Top surface (bright)
+        g.fillStyle(0xFFC107, 1);
+        g.beginPath();
+        g.moveTo(-30, 10);
+        g.lineTo(26, -10);
+        g.lineTo(30, -8);
+        g.lineTo(30, 12);
+        g.lineTo(-30, 12);
+        g.closePath();
+        g.fillPath();
+
+        // Incline edge highlight
+        g.lineStyle(2.5, 0xFFE082, 1);
+        g.lineBetween(-30, 10, 27, -9);
+
+        // Hazard stripes along the base
+        g.fillStyle(0x333333, 0.85);
+        [-22, -6, 10].forEach(sx => {
+            g.beginPath();
+            g.moveTo(sx, 12);
+            g.lineTo(sx + 6, 12);
+            g.lineTo(sx + 12, 4 - (sx + 12 + 30) * 0.18);
+            g.lineTo(sx + 6, 4 - (sx + 6 + 30) * 0.18);
+            g.closePath();
+            g.fillPath();
+        });
+
+        // White chevrons pointing in the direction of travel
+        const chevrons = this.scene.add.graphics();
+        chevrons.lineStyle(3.5, 0xFFFFFF, 1);
+        [0, 11].forEach(cx => {
+            chevrons.beginPath();
+            chevrons.moveTo(cx - 4, -1);
+            chevrons.lineTo(cx + 2, 4);
+            chevrons.lineTo(cx - 4, 9);
+            chevrons.strokePath();
+        });
+        chevrons.setAlpha(0.9);
+
+        this.add([shadow, g, chevrons]);
+
+        // Pulse the chevrons for visibility
         this.scene.tweens.add({
-            targets: arrow,
+            targets: chevrons,
             alpha: { from: 0.4, to: 1 },
             duration: 500,
             ease: 'Sine.easeInOut',
             yoyo: true,
             repeat: -1
         });
-        
+
         this.setSize(60, 20);
     }
     

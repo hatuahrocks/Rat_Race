@@ -13,7 +13,6 @@ class Obstacle extends Phaser.GameObjects.Container {
     
     createObstacle() {
         let obstacle;
-        console.log('Creating obstacle of type:', this.type);
 
         // Create warning background circle
         const warningCircle = this.createWarningCircle();
@@ -74,27 +73,8 @@ class Obstacle extends Phaser.GameObjects.Container {
     }
 
     createWarningCircle() {
-        // Create pulsing red warning circle that stays transparent
-        const outerCircle = this.scene.add.circle(0, 0, 35, 0xFF0000);
-        outerCircle.setAlpha(0.25);
-        const innerCircle = this.scene.add.circle(0, 0, 30, 0xFF3333);
-        innerCircle.setAlpha(0.3);
-
-        const warningContainer = this.scene.add.container(0, 0, [outerCircle, innerCircle]);
-
-        // Add subtle pulsing animation - stays transparent
-        this.scene.tweens.add({
-            targets: [outerCircle, innerCircle],
-            scaleX: { from: 1, to: 1.15 },
-            scaleY: { from: 1, to: 1.15 },
-            alpha: { from: 0.3, to: 0.1 },
-            duration: 1200,
-            ease: 'Sine.easeInOut',
-            yoyo: true,
-            repeat: -1
-        });
-
-        return warningContainer;
+        // Pulsing 'sonar' ring reads as danger without hiding the obstacle art
+        return GameArt.createWarningRing(this.scene);
     }
     
     createGnomeFoot() {
