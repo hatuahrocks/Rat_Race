@@ -1,5 +1,5 @@
 const GameConfig = {
-    VERSION: '1.12.0', // Track picker (Garden/Beach/Living Room scenery), difficulty settings, up to 6 racers
+    VERSION: '1.12.1', // Halve background music volume
     LANE_COUNT: 4,
     LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
     OFFROAD_HIGH_Y: 184, // Above top lane

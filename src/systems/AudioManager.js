@@ -2,7 +2,7 @@ class AudioManager {
     constructor(scene) {
         this.scene = scene;
         this.sounds = {};
-        this.musicVolume = 0.5;
+        this.musicVolume = 0.25;
         this.sfxVolume = 0.7;
         this.currentMusic = null;
         this.soundCooldowns = {}; // Track when sounds are playing
