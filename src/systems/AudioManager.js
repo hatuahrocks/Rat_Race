@@ -2,7 +2,13 @@ class AudioManager {
     constructor(scene) {
         this.scene = scene;
         this.sounds = {};
-        this.musicVolume = 0.25;
+        this.musicVolume = 0.5; // fallback for tracks not listed below
+        // Per-track volumes: the generated race chiptune is much hotter
+        // than the menu mp3, so it plays quieter
+        this.musicVolumes = {
+            music_menu: 0.6,
+            music_race: 0.25
+        };
         this.sfxVolume = 0.7;
         this.currentMusic = null;
         this.soundCooldowns = {}; // Track when sounds are playing
@@ -78,12 +84,13 @@ class AudioManager {
         if (this.currentMusic) {
             this.currentMusic.stop();
         }
-        
+
         if (this.sounds[key]) {
+            const volume = this.musicVolumes[key] !== undefined ? this.musicVolumes[key] : this.musicVolume;
             this.currentMusic = this.sounds[key];
-            this.currentMusic.play({ 
-                volume: this.musicVolume, 
-                loop: loop 
+            this.currentMusic.play({
+                volume: volume,
+                loop: loop
             });
         }
     }

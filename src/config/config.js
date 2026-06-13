@@ -1,5 +1,5 @@
 const GameConfig = {
-    VERSION: '1.12.1', // Halve background music volume
+    VERSION: '1.12.2', // Per-track music volume: menu louder (0.6), race quiet (0.25)
     LANE_COUNT: 4,
     LANE_Y_POSITIONS: [264, 344, 424, 504], // Positioned on the road (road center at 384)
     OFFROAD_HIGH_Y: 184, // Above top lane
